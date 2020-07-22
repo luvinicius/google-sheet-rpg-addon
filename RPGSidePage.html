@@ -1,0 +1,201 @@
+<html>
+
+<head>
+    <base target="_top">
+
+    <style>
+        div.painelRPG fieldset {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: solid 1px lightgray;
+            box-shadow: lightgray 1px 2px 4px;
+        }
+
+        div.painelRPG fieldset>legend {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background-color: lightgray;
+            color: #666;
+        }
+
+        div.painelRPG fieldset.opened>div {
+            margin: 0;
+            padding: .25em;
+        }
+
+        div.painelRPG fieldset.closed {
+            margin-bottom: .25em;
+        }
+
+        div.painelRPG fieldset.closed>legend {
+            background-color: darkgray;
+            color: #444;
+            font-size: 90%;
+        }
+
+        div.painelRPG fieldset.closed>div {
+            display: none;
+        }
+
+        div.painelRPG fieldset.opened>div {
+            display: block;
+        }
+    </style>
+    <script src="./MockGoogleScript.js"> </script>
+</head>
+
+<body>
+
+    <div class="painelRPG">
+        <fieldset class="closed">
+            <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;Jogar</legend>
+            <div>
+                <fieldset class="closed">
+                    <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;&nbsp;Rolar Dado</legend>
+                    <div id="rolardado" class="content">
+                        <div>
+                            <svg></svg>
+                        </div>
+                        <div style="display:inline-block;width:'301px'; overflow: hidden;border: solid 1px silver;"  >
+                            <canvas id="dices" width="300px" height="300px">
+                            </canvas>
+                        </div>
+                        <hr />
+
+                    </div>
+                </fieldset>
+            </div>
+        </fieldset>
+
+        <fieldset class="closed">
+            <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;Editar</legend>
+            <div>
+                <fieldset class="closed">
+                    <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;&nbsp;Inimigos</legend>
+                    <div>
+                        <button id="btnRegioes" onclick="rpgSideBar.abrirFormularioInimigos()">Adicionar novo</button>
+                        <button id="btnRegioes" onclick="rpgSideBar.abrirFormularioInimigos()">Editar na linha
+                            selecionada</button>
+                    </div>
+                    <div>
+                        <fieldset class="closed">
+                            <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;&nbsp;&nbsp;Regiões
+                            </legend>
+                            <div id="regioes">
+                                <!-- input regioes -->
+
+                            </div>
+                            <div>
+                                <button id="btnRegioes" onclick="rpgSideBar.criarCedulaRegioes()">Aplicar regiões
+                                    selecionadas na cédula</button>
+                            </div>
+                        </fieldset>
+                        <fieldset class="closed">
+                            <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;&nbsp;&nbsp;Dificuldades
+                            </legend>
+                            <div id="dificuldades">
+
+                            </div>
+                        </fieldset>
+
+                    </div>
+                </fieldset>
+            </div>
+        </fieldset>
+
+
+
+        <fieldset class="closed">
+            <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;Configurações</legend>
+        </fieldset>
+
+    </div>
+
+    <script>
+        //<![CDATA  
+
+        console.log("construindo sidebar")
+        var rpgSideBar = {
+            toggle: function (dom) {
+                if (dom.className == 'closed') dom.className = 'opened'
+                else dom.className = 'closed'
+            },
+            text: function (value) { return document.createTextNode(value); },
+            input: function (id, value, type) { },
+            ul: function (config) {
+                var ul = document.createElement("ul");
+                return ul;
+            },
+            li: function (config, textValue = undefined) {
+                var li = document.createElement("li");
+                if (textValue) li.appendChild(this.text(value));
+                return li;
+            },
+            listfy: function (no, config) {
+                if (Array.isArray(no)) {
+                    var lista = this.ul(config);
+                    for (var i = 0; i < no.legnth; i++)
+                        lista.appendChild(this.listfy(no[i], config));
+                    return lista;
+                } else if (typeof (no) == "object") {
+                    for (key in no) {
+                        var linha = this.listfy(key, config);
+                        linha.appendChild(this.listfy(no[key], config));
+                        return linha;
+                    }
+                } else {
+                    return this.li(config, no);
+                }
+            },
+
+            load: function () {
+
+                //this._preencheRegioes(google.script.run.getJSONProperty("regioes"));
+                google.script.run
+                    .withFailureHandler(console.error)
+                    .withSuccessHandler(this._preencheDificuldades.bind(this))
+                    .getJSONProperty("dificuldades");
+            },
+
+            _preencheRegioes: function (regioes) {
+                console.log(regioes);
+                document
+                    .getElementById('regioes')
+                    .appendChild(
+                        this.listfy(regioes,
+                            {
+                                editable: true,
+                                blockable: true,
+                                appendable: true,
+                                selectable: true,
+                                verticalyReordenable: true,
+                                horizontalyReordenable: true,
+                            }));
+            },
+            _preencheDificuldades: function (dificuldades) {
+                console.log(dificuldades);
+                try{
+                document
+                    .getElementById('dificuldades')
+                    .appendChild(this.listfy(dificuldades, { selectable: true }));
+                }catch(err){
+                    console.log(err);
+                }
+            },
+            abrirFormularioInimigos: function () {
+
+            },
+            criarCedulaRegioes: function () {
+
+            }
+        };
+
+        rpgSideBar.load();
+
+//]]
+    </script>
+</body>
+
+</html>
