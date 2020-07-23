@@ -1,3 +1,4 @@
 # Google Sheet RPG Addon
-An addon to add functionalities into google sheet for Role Play Game masters. This addon uses google script.
-This addon adds functionalities into Google Sheet  by using Google Script.
+A Google Sheet addon to assist out Role Play Game masters to manage your campaigns.
+
+This addon adds functionalities into Google Sheet by using Google Script.
