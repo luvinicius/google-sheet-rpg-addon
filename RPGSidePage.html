@@ -8,8 +8,8 @@
             margin: 0;
             padding: 0;
             border: 0;
-            outline: solid 1px lightgray;
-            box-shadow: lightgray 1px 2px 4px;
+            box-shadow: lightgray 0px 3px 4px;
+            border-radius: 5px;
         }
 
         div.painelRPG fieldset>legend {
@@ -18,6 +18,32 @@
             width: 100%;
             background-color: lightgray;
             color: #666;
+            border-radius: 5px;
+            cursor: default;
+            -webkit-touch-callout: none;
+            /* iOS Safari */
+            -webkit-user-select: none;
+            /* Safari */
+            -khtml-user-select: none;
+            /* Konqueror HTML */
+            -moz-user-select: none;
+            /* Old versions of Firefox */
+            -ms-user-select: none;
+            /* Internet Explorer/Edge */
+            user-select: none;
+            /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+        }
+
+        div.painelRPG fieldset.opened {
+            border: solid 1px lightgray;
+            border-top-width: 1em;
+            box-shadow: lightgray 0px 3px 4px;
+        }
+
+        div.painelRPG fieldset.opened>legend {
+            border-bottom-left-radius: 0px;
+            border-bottom-right-radius: 0px;
         }
 
         div.painelRPG fieldset.opened>div {
@@ -42,6 +68,45 @@
         div.painelRPG fieldset.opened>div {
             display: block;
         }
+
+        div.painelRPG button {
+            display: block;
+            width: 100%;
+            background-color: lightgray;
+            color: #666;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: .25em;
+            outline: none;
+            box-shadow: lightgray 0px 1px 3px;
+        }
+
+        div.painelRPG button:hover {
+            background-color: #DDD;
+            color: #888;
+        }
+
+        div.painelRPG button:focus {
+            background-color: silver;
+            color: #444;
+        }
+
+
+        div.painelRPG ul {
+            list-style-type: square;
+            padding-inline-start: 0;
+            padding: 1em;
+            ;
+        }
+
+        div.painelRPG ul>li>text:hover {
+            background-color: red;
+        }
+
+        div.painelRPG ul>li>input[type="text"] {
+            border: none;
+            outline: none;
+        }
     </style>
     <script src="./MockGoogleScript.js"> </script>
 </head>
@@ -58,7 +123,7 @@
                         <div>
                             <svg></svg>
                         </div>
-                        <div style="display:inline-block;width:'301px'; overflow: hidden;border: solid 1px silver;"  >
+                        <div style="display:inline-block;width:'301px'; overflow: hidden;border: solid 1px silver;">
                             <canvas id="dices" width="300px" height="300px">
                             </canvas>
                         </div>
@@ -69,10 +134,10 @@
             </div>
         </fieldset>
 
-        <fieldset class="closed">
+        <fieldset class="opened">
             <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;Editar</legend>
             <div>
-                <fieldset class="closed">
+                <fieldset class="opened">
                     <legend onclick="rpgSideBar.toggle(this.parentNode)">&nbsp;&nbsp;&nbsp;Inimigos</legend>
                     <div>
                         <button id="btnRegioes" onclick="rpgSideBar.abrirFormularioInimigos()">Adicionar novo</button>
@@ -123,36 +188,132 @@
                 else dom.className = 'closed'
             },
             text: function (value) { return document.createTextNode(value); },
-            input: function (id, value, type) { },
+            label: function (value = undefined, references = undefined) {
+                var label = document.createElement("label");
+                if (value) label.appendChild(this.text(value));
+                if (references) label.for = references;
+                return label;
+            },
+            input: function (id, config = undefined) {
+                var input = document.createElement("input");
+                if (id) config.id = config.id;
+                if (config == undefined) config = {};
+                if (config.type) input.type = config.type;
+                if (config.value) input.value = config.value;
+                return input;
+            },
             ul: function (config) {
                 var ul = document.createElement("ul");
                 return ul;
             },
-            li: function (config, textValue = undefined) {
+            normalize: function (text) {
+                return text.toString().normalize('NFD')
+                    .replace(/ /g, '999999')
+                    .replace(/([\u0300-\u036f]|[^0-9a-zA-Z])/g, '')
+                    .replace(/999999/g, '_');
+            },
+            snakefy: function (text) {
+                text = this.normalize(text);
+                var replaces = [];
+                for (i in text) {
+                    if (text[i] == text[i].toUpperCase()
+                        && !replaces.includes(text[i])) {
+                        replaces.push(text[i]);
+                    }
+                }
+                for (i in replaces) {
+                    var regex = RegExp.compile(replaces[i], 'g');
+                    text.replace(regex, `_${replaces[i].toLowerCase()}`);
+                }
+                return text;
+            },
+            makeId: function (reference = undefined) {
+                if (reference) {
+                    reference = this.snakefy(reference);
+
+                    if (this.references == undefined) { this.references = {} }
+                    if (this.references[reference]) this.references[reference]++;
+                    else this.references[reference] = 0;
+                    return this.references[reference];
+                } else {
+                    if (this.idCounter) this.idCounter++;
+                    else this.idCounter = 0;
+                    return this.idCounter;
+                }
+            },
+            li: function (config = undefined, textValue = undefined) {
                 var li = document.createElement("li");
-                if (textValue) li.appendChild(this.text(value));
+
+                if (config == undefined) config = {};
+
+                if (config.selectable) {
+                    var checkbox = this.input(this.makeId(textValue),
+                        {
+                            type: "checkbox",
+                            value: textValue ? textValue : ""
+                        });
+                    li.appendChild(checkbox);
+                    if (config.editable) {
+
+                    } else {
+
+                    }
+                } else if (config.editable) {
+
+                } else {
+                    if (textValue) li.appendChild(this.text(textValue));
+                }
+
+
+
+
+                /*{
+                                editable: true,
+                                blockable: true,
+                                appendable: true,
+                                selectable: true,
+                                verticalyReordenable: true,
+                                horizontalyReordenable: true,
+                            }*/
+
+
+
                 return li;
             },
             listfy: function (no, config) {
                 if (Array.isArray(no)) {
                     var lista = this.ul(config);
-                    for (var i = 0; i < no.legnth; i++)
+                    for (var i = 0; i < no.length; i++)
                         lista.appendChild(this.listfy(no[i], config));
                     return lista;
                 } else if (typeof (no) == "object") {
-                    for (key in no) {
-                        var linha = this.listfy(key, config);
-                        linha.appendChild(this.listfy(no[key], config));
-                        return linha;
+                    var keys = Object.keys(no);
+                    var objectElement;
+                    if (keys.length == 1) {
+                        var firstKey = keys[0];
+                        objectElement = this.li(config, firstKey);
+                        objectElement.appendChild(this.listfy(no[firstKey], config));
+                    } else if (keys.length > 1) {
+                        var objectElement = this.ul(config);
+                        for (key in no) {
+                            var linha = this.li(config, key);
+                            linha.appendChild(this.listfy(no[key], config));
+                            objectElement.appendChild(linha);
+                        }
+                    } else {
+                        objectElement = this.li(config);
                     }
+                    return objectElement;
                 } else {
                     return this.li(config, no);
                 }
             },
 
             load: function () {
-
-                //this._preencheRegioes(google.script.run.getJSONProperty("regioes"));
+                google.script.run
+                    .withFailureHandler(console.error)
+                    .withSuccessHandler(this._preencheRegioes.bind(this))
+                    .getJSONProperty("regioes");
                 google.script.run
                     .withFailureHandler(console.error)
                     .withSuccessHandler(this._preencheDificuldades.bind(this))
@@ -175,12 +336,11 @@
                             }));
             },
             _preencheDificuldades: function (dificuldades) {
-                console.log(dificuldades);
-                try{
-                document
-                    .getElementById('dificuldades')
-                    .appendChild(this.listfy(dificuldades, { selectable: true }));
-                }catch(err){
+                try {
+                    document
+                        .getElementById('dificuldades')
+                        .appendChild(this.listfy(dificuldades, { selectable: true }));
+                } catch (err) {
                     console.log(err);
                 }
             },
