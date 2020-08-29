@@ -241,20 +241,21 @@
                     return this.idCounter;
                 }
             },
-            li: function (config = undefined, textValue = undefined) {
+            li: function (config = undefined, textValue = undefined, id=undefined) {
                 var li = document.createElement("li");
 
                 if (config == undefined) config = {};
 
                 if (config.selectable) {
-                    var checkbox = this.input(this.makeId(textValue),
+                    var checkbox = this.input(this.makeId(id), {type: "checkbox"});
+                    li.appendChild(checkbox);
+                    if (config.editable) {
+                        var input = this.input(this.makeId(id),
                         {
                             type: "checkbox",
                             value: textValue ? textValue : ""
                         });
-                    li.appendChild(checkbox);
-                    if (config.editable) {
-
+                        li.appendChild(input);
                     } else {
 
                     }
