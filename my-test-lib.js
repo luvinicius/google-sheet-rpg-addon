@@ -1,25 +1,24 @@
-const { RSA_NO_PADDING } = require('constants');
-const { equal } = require('assert');
+const { type } = require('os');
 
 var Logger = {
     text: "",
-    stringfy: function (val) {
-        var str = "";
+    stringfy: function (val, cottedString) {
         if (Array.isArray(val)) {
-            str = val.reduce((v, vi, i) => v.concat(i > 0 ? ", " : "").concat(this.stringfy(vi)), "[")
-                .concat("]");
-        } if (val === undefined) {
-            str = "undefined";
+            return val.reduce((v, vi, i) => `${v}${i > 0 ? ", " : ""}${this.stringfy(vi, true)}`
+                , "[")
+                + "]";
+        } else if (val === undefined) {
+            return "undefined";
+        } else if (cottedString === true && typeof val === "string") {
+            return '"' + val + '"'
         } else if (typeof val.toString == "function") {
-            str = val.toString();
+            return val.toString();
         } else {
-            str = typeof val;
+            return typeof val;
         }
-
-        return str;
     },
     log: function (...str) {
-        this.text = str.reduce((t, i) => t.concat(this.stringfy(i)), this.text)
+        this.text = str.reduce((t, i) => `${t}${this.stringfy(i)}`, this.text)
             .concat("\n");
         console.log(...str);
     }
@@ -46,20 +45,17 @@ function test(description, assertion) {
 
             nTests++;
             try {
-                pass = expect.true;
-                if (pass) {
-                    nSuccess++;
-                    Logger.log("Assertion Pass!");
-                } else {
-                    nFails++;
-                    Logger.log("Assertion Fail!");
-                }
+                pass = assertion.true;
+                if (pass) nSuccess++;
+                else nFails++;
             } catch (err) {
                 assertionError = err;
                 Logger.log(err);
                 nErrors++;
             }
-            __displayAssertionResult_(assertion, pass, assertionError);
+            __displayAssertionResult_(assertion, pass, assertionError, ` Expect ${assertion.prefix ? assertion.prefix : ''}`);
+            if (pass) Logger.log("Test Pass!");
+            else Logger.log("Test Fail!");
         });
     } else throw new Error("assertion must be instance of Assertion");
 }
@@ -82,7 +78,7 @@ function agroup(...assertions) {
         let nGroupTests = 0, nGroupSuccess = 0, nGroupFails = 0, nGroupErrors = 0;
 
         let allAssertsTrue = true;
-        for (i in assertions) {
+        for (var i = 0; i < assertions.length; i++) {
             let assertion = assertions[i];
             let pass = false;
             let assertionError = undefined;
@@ -97,14 +93,14 @@ function agroup(...assertions) {
                 nGroupErrors++;
             }
 
-            __displayAssertionResult_(assertion, pass, assertionError, `${i + 1})`);
+            __displayAssertionResult_(assertion, pass, assertionError, `${i + 1}) Expect ${assertion.prefix ? assertion.prefix : ''}`);
             allAssertsTrue &= pass;
         }
 
-        Logger.log("\nTotal:\t", nGroupTests, "\nSucess:\t", nGroupSuccess, "\nFails:\t", nGroupFails, "\nErrors:\t", nGroupErrors);
+        Logger.log("\nTotal:\t", nGroupTests, "\tSucess:\t", nGroupSuccess, "\tFails:\t", nGroupFails, "\tErrors:\t", nGroupErrors);
         return allAssertsTrue;
     }
-    return new Assertion(test);
+    return expect.toReturnTrue(test);
 }
 
 class AssertationBuilder {
@@ -113,8 +109,6 @@ class AssertationBuilder {
         this.aliasValueA = aliasValueA;
         this.functionForValueA = functionForValueA;
     }
-
-
 
     toBeEqual(valueB, aliasValueB, functionForValueB) {
         return this._toBe_(MustBeEqualAssertion, valueB, aliasValueB, functionForValueB);
@@ -126,15 +120,18 @@ class AssertationBuilder {
     }
 
     _build_(assertion) {
-        if (this.deny === true) assertation = new NotAssertion(assertion);
+        if (this.deny === true) assertion = new NotAssertion(assertion);
         assertion.builder = this;
 
         if (this.assertion instanceof AssertionGroup) {
-            this.assertion.append(assertation);
-        } else this.assertion = assertation;
+            this.assertion.append(assertion);
+        } else this.assertion = assertion;
         return this.assertion;
     }
-
+    get true() {
+        if (this._true_ == undefined) this._true_ = this.test(this);
+        return this._true_;
+    }
     toBeEqualResultOf(functionForValueB, aliasFunctionForValueN) {
         return this.toBeEqual(undefined, aliasFunctionForValueN, functionForValueB);
     }
@@ -145,6 +142,22 @@ class AssertationBuilder {
 
     toBeFalse() {
         return this.toBeEqual(true, "False");
+    }
+
+    toBeGreaterThan(valueB, aliasValueB, functionForValueB) {
+        return this._toBe_(MustBeGreatherAssertion, valueB, aliasValueB, functionForValueB);
+    }
+
+    toBeEqualOrGreaterThan(valueB, aliasValueB, functionForValueB) {
+        return this._toBe_(MustBeEqualOrGreatherAssertion, valueB, aliasValueB, functionForValueB);
+    }
+
+    toBeLessThan(valueB, aliasValueB, functionForValueB) {
+        return this._toBe_(MustBeLessAssertion, valueB, aliasValueB, functionForValueB);
+    }
+
+    toBeEqualOrLessThan(valueB, aliasValueB, functionForValueB) {
+        return this._toBe_(MustBeEqualOrLessAssertion, valueB, aliasValueB, functionForValueB);
     }
 
     get not() {
@@ -158,6 +171,10 @@ class AssertationBuilder {
 
     any(...assertions) {
         return this._build_(new OrAssertion(...assertions));
+    }
+
+    returnToBeTrue(testFunction, description, failMsg) {
+        return this._build_(new TestAssertion(testFunction, description, failMsg));
     }
 
     get expect() { return expect; }
@@ -183,16 +200,18 @@ var expect = {
     },
     any: function (...assertions) {
         return new AssertationBuilder().any(...assertions);
+    },
+    toReturnTrue: function (testFunction, description, failMsg) {
+        return new AssertationBuilder().returnToBeTrue(testFunction, description, failMsg);
     }
-
 };
 
 
 class Assertion {
 
     constructor() {
-        this.description = "";
-        this.failMsg = "";
+        this.description = undefined;
+        this.failMsg = undefined;
     }
 
     test() {
@@ -206,23 +225,47 @@ class Assertion {
 
     get and() {
         if (this.builder) {
-            this.builder.assertation = new AndAssertion().append(this);
+            this.builder.assertation = new AndAssertion().append(this).putPrefix(this.prefix);
             return this.builder;
         } else throw Error("Assertion must be build by a builder to use and instruction");
     }
 
     get or() {
         if (this.builder) {
-            this.builder.assertation = new OrAssertion().append(this);
+            this.builder.assertation = new OrAssertion().append(this).putPrefix(this.prefix);
             return this.builder;
         } else throw Error("Assertion must be build by a builder to use or instruction");
     }
 
+    get prefix() {
+        return this._prefix_;
+    }
+
+    putPrefix(prefix) {
+        this._prefix_ = prefix;
+        return this;
+    }
+
+    setDescription(description){
+        this.description = description;
+        return this;
+    }
+
 }
 
-class AssertionGroup {
-    constructor(descriptionDelimiter, failMsgDelimiter, ...assertions) {
+class TestAssertion extends Assertion {
+    constructor(test, description, failMsg) {
         super();
+        this.test = test;
+        this.description = description;
+        this.failMsg = failMsg;
+    }
+}
+
+class AssertionGroup extends Assertion {
+    constructor(superGroup, descriptionDelimiter, failMsgDelimiter, ...assertions) {
+        super();
+        this.superGroup = superGroup;
         this.descriptionDelimiter = descriptionDelimiter;
         this.failMsgDelimiter = failMsgDelimiter;
         this.assertions = assertions ? assertions : [];
@@ -236,7 +279,21 @@ class AssertionGroup {
     }
 
     get description() {
-        return this.assertions.reduce((before, current, i) => `${before}${i > 0 ? this.descriptionDelimiter : ''}${current.description}`, '');
+        let msg = ''
+
+        for (let i = 0; i < this.assertions.length; i++) {
+            let current = this.assertions[i];
+            let description = current.description;
+            if (i > 0
+                && this.assertions[i - 1].builder == current.builder
+                && description.match(/to be .*$/)) {
+
+                description = description.match(/to be .*$/)[0];
+            }
+
+            msg = `${msg}${i > 0 ? this.descriptionDelimiter : ''}${description}`
+        }
+        return msg;
     }
 
     get failMsg() {
@@ -251,10 +308,24 @@ class AssertionGroup {
         }
         return msg;
     }
+
+    get and() {
+        if (this.builder) {
+            this.builder.assertation = new AndAssertion(this).append(this).putPrefix(this.prefix);
+            return this.builder;
+        } else throw Error("Assertion must be build by a builder to use and instruction");
+    }
+
+    get or() {
+        if (this.builder) {
+            this.builder.assertation = new OrAssertion(this).append(this).putPrefix(this.prefix);
+            return this.builder;
+        } else throw Error("Assertion must be build by a builder to use or instruction");
+    }
 }
 
 class AndAssertion extends AssertionGroup {
-    constructor(...assertions) { super(" and ", " and ", ...assertions); }
+    constructor(superGroup, ...assertions) { super(superGroup, " and ", " and ", ...assertions); }
 
     test() { return this.assertions.reduce((beforeTrue, current) => beforeTrue && current.true, true); }
 
@@ -264,30 +335,18 @@ class AndAssertion extends AssertionGroup {
         } else throw Error("Assertion must be build by a builder to use and instruction");
     }
 
-    get or() {
-        if (this.builder) {
-            this.builder.assertation = new OrAssertion().append(this);
-            return this.builder;
-        } else throw Error("Assertion must be build by a builder to use or instruction");
-    }
-
 }
 
 class OrAssertion extends Assertion {
-    constructor(...assertions) { super(" or ", " and ", ...assertions) }
-    get and() {
-        if (this.builder) {
-            this.builder.assertation = new AndAssertion().append(this);
-            return this.builder;
-        } else throw Error("Assertion must be build by a builder to use and instruction");
-    }
+    constructor(superGroup, ...assertions) { super(superGroup, " or ", " and ", ...assertions) }
+
+    test() { return this.assertions.reduce((beforeTrue, current) => beforeTrue || current.true, false); }
 
     get or() {
         if (this.builder) {
             return this.builder;
         } else throw Error("Assertion must be build by a builder to use or instruction");
     }
-    test() { return this.assertions.reduce((beforeTrue, current) => beforeTrue || current.true, false); }
 }
 
 class NotAssertion extends Assertion {
@@ -304,39 +363,89 @@ class NotAssertion extends Assertion {
         return this.assertation.failMsg;
     }
 }
+class AssertionValuedParameters{
+    constructor(value, 
+        aliasValue, 
+        functionToGetValue, 
+        mapValue, 
+        aliasMapValue) {
+        this.value = value;
+        this.functionToGetValueA = functionToGetValue;
+        if (aliasValue == undefined) this.aliasValue = functionToGetValue ? Logger.stringfy(functionToGetValue) : Logger.stringfy(value);
+        this.mapValue = mapValue;
+        this.aliasMapValue = aliasMapValue;
+    }
+}
+class MustBeAssertionParameters extends AssertionValuedParameters{
+    /**
+     * 
+     * @param {AssertionValuedParameters} valueParametersA 
+     * @param {AssertionValuedParameters} valueParametersB 
+     */
+    constructor(valueParametersA, valueParametersB) {
+        this.valueParametersA = valueParametersA;
+        this.valueParametersB = valueParametersB;
 
-
-
-class MustBeAssertion extends Assertion {
-    constructor(valueA, valueB, aliasValueA, aliasValueB,
-        functionToGetValueA, functionToGetValueB,
-        cmpDescription) {
-        super();
         this.valueA = valueA;
         this.valueB = valueB;
         this.functionToGetValueA = functionToGetValueA;
         this.functionToGetValueB = functionToGetValueB;
         if (aliasValueA == undefined) aliasValueA = functionToGetValueA ? Logger.stringfy(functionToGetValueA) : Logger.stringfy(valueA);
-        if (aliasValueB == undefined) aliasValueB = valueB ? functionToGetValueB.stringfy(functionToGetValueB) : Logger.stringfy(valueB);
-        this.description = `${aliasValueA} to be ${cmpDescription} ${aliasValueB}`;
-        this.failMsg = `${aliasValueA} is ${Logger.stringfy(valueA)}`;
+        if (aliasValueB == undefined) aliasValueB = functionToGetValueB ? Logger.stringfy(functionToGetValueB) : Logger.stringfy(valueB);
+        this.mapValue = mapValueA;
+        this.aliasMapValue = aliasMapValueA;
+        this.mapValueB = mapValueB;
+        this.aliasMapValueB = aliasMapValueB;
+
+    }
+    get aliasValueA(){ return this.valueParametersA.aliasValue;}
+    get valueA(){ return this.valueParametersA.value;}
+    get functionToGetValueA(){ return this.valueParametersA.functionToGetValue;}
+    get mapValueA(){return this.valueParametersA.mapValue;}
+    get aliasMapValueA(){return this.valueParametersA.aliasMapValue;}
+
+    get aliasValueA(){ return this.valueParametersA.aliasValue;}
+    get valueA(){ return this.valueParametersA.value;}
+    get functionToGetValueA(){ return this.valueParametersA.functionToGetValue;}
+    get mapValueA(){return this.valueParametersA.mapValue;}
+    get aliasMapValueA(){return this.valueParametersA.aliasMapValue;}
+}
+
+class MustBeAssertion extends Assertion {
+    constructor(config, cmpDescription) {
+        super();
+        this.config = config;
+        this.cmpDescription = cmpDescription;
     }
 
-    cmp(valueA, valueB) { throw Error("Must Be cmp must be overrided"); }
+    get aliasValueA(){}
+    get aliasMapValueA(){}
+    get aliasValueB(){}
+    get aliasMapValueB(){}
 
+    get description() {
+        return `${this.aliasValueA}${this.aliasMapValueA ? this.aliasMapValueA : ''} to be ${this.cmpDescription} ${this.aliasValueB}${this.aliasMapValueB ? this.aliasMapValueB : ''}`;
+    }
 
     test() {
-        if (this.functionToGetValueA) this.valueA = this.functionToGetValueA();
-        if (this.functionToGetValueB) this.valueA = this.functionToGetValueB();
+        this.valueA = this.config.valueA;
+        this.valueA = this.config.valueB;
+        if (this.config.functionToGetValueA) this.valueA = this.config.functionToGetValueA();
+        if (this.config.functionToGetValueB) this.valueA = this.config.functionToGetValueB();
+        if (this.config.mapValueA) this.valueA = this.config.mapValueA(this.valueA);
+        if (this.config.mapValueB) this.valueB = this.config.mapValueB(this.valueB);
         return this.cmp(this.valueA, this.valueB);
+    }
+
+    cmp(valueA, valueB) { throw new Error("Must Be cmp must be overrided"); }
+
+    get failMsg() {
+        return `${aliasValueA} is ${Logger.stringfy(this.valueA)}`;
     }
 }
 
 class MustBeEqualAssertion extends MustBeAssertion {
-    constructor(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB) {
-        super(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB,
-            "equal to");
-    }
+    constructor(config) { super(config, "equal to");}
 
     cmp(valueA, valueB) {
         if (Array.isArray(valueA)) {
@@ -358,34 +467,22 @@ class MustBeEqualAssertion extends MustBeAssertion {
 }
 
 class MustBeGreatherAssertion extends MustBeAssertion {
-    constructor(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB) {
-        super(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB,
-            "greater than");
-    }
-
+    constructor(config) { super(config, "greater than");}
     cmp(valueA, valueB) { return valueA > valueB }
 }
 
 class MustBeEqualOrGreatherAssertion extends MustBeAssertion {
-    constructor(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB) {
-        super(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB, "equal or greater than");
-    }
+    constructor(config) { super(config, "equal or greater than");}
     cmp(valueA, valueB) { return valueA >= valueB }
 }
 
 class MustBeLessAssertion extends MustBeAssertion {
-    constructor(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB) {
-        super(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB,
-            "less than");
-    }
-
+    constructor(config) { super(config, "less than");}
     cmp(valueA, valueB) { return valueA < valueB }
 }
 
 class MustBeEqualOrLessAssertion extends MustBeAssertion {
-    constructor(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB) {
-        super(valueA, valueB, aliasValueA, aliasValueB, functionToGetValueA, functionToGetValueB, "equal or less than");
-    }
+    constructor(config) { super(config, "equal or less than");}
     cmp(valueA, valueB) { return valueA <= valueB }
 }
 
@@ -398,7 +495,7 @@ function displayResults() {
 
     Logger.log("------------------------------------------------------\n\n");
     Logger.log("------------------------------------------------------\n\t\t\t\tFINAL RESULTS\n------------------------------------------------------")
-    Logger.log("Total:\t", nTests, "\nSucess:\t", nSuccess, "\nFails:\t", nFails, "\nErrors:\t", nErrors);
+    Logger.log("Total:\t", nTests, "\tSucess:\t", nSuccess, "\tFails:\t", nFails, "\tErrors:\t", nErrors);
 }
 
 /**

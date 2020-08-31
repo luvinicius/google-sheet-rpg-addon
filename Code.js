@@ -527,9 +527,8 @@ function safeAppend_(array, value, concatBySide) {
  * @param {object|Array<object>|Array<Array<object>>} arrayB second array, if it's not will become one
  */
 function pushColumn_(arrayA, arrayB) {
-    equalizeNumbeOfColumns_(arrayA);
-    equalizeNumbeOfColumns_(arrayB);
-    equalizeNumbeOfRows_(arrayA, arrayB);
+    equalizeNumberOfColumns_(arrayA, arrayB);
+    equalizeNumberOfRows_(arrayA, arrayB);
 
     var newArray = [];
     for (var i = 0; i < arrayA.length; i++) {
@@ -541,27 +540,26 @@ function pushColumn_(arrayA, arrayB) {
 
 /**
  * Make the both array have the same number of columns
- * @param {Array<Array<*>>} arrays,... one or more array to equalize number os columns
+ * @param {Array<Array<*>>} arrayA one or more array to equalize number os columns
  */
-function equalizeNumbeOfColumns_(...arrays) {
-    for (i in arrays) {
-        arrays[i] = to2DArray(arrays[i]);
-    }
-    var nColumns = arrays.reduce(
-        function (previus, current) {
-            return current.reduce(_to_max_length_, previus);
-        }, 0);
+function equalizeNumberOfColumns_(arrayA, arrayB) {
+    arrayA = to2DArray(arrayA);
+    if (arrayB) arrayB = to2DArray(arrayB);
+    nColumns = arrayA.reduce(_to_max_length_, 0);
+    if (arrayB) nColumns = arrayB.reduce(_to_max_length_, nColumns);
 
-    for (i in arrays) {
-        var array = arrays[i];
-        for (j in array) {
-            var row = array[j];
-            while (row.length < nColumns) {
-                row.push("");
+    for (var i = 0; i < arrayA.length; i++) {
+        while (arrayA[i].length < nColumns) {
+            arrayA[i].push("");
+        }
+    }
+    if (arrayB) {
+        for (var i = 0; i < arrayB.length; i++) {
+            while (arrayB[i].length < nColumns) {
+                arrayB[i].push("");
             }
         }
     }
-    if (arrays.length == 1) return arrays[i];
 }
 
 /**
@@ -598,22 +596,24 @@ var _to_max_length_ = function (previus, current) {
  * @param {Array<<*>>} arrayA 
  * @param {Array<<*>>} arrayB 
  */
-function equalizeNumbeOfRows_(arrayA, arrayB) {
+function equalizeNumberOfRows_(arrayA, arrayB) {
+    arrayA = to2DArray(arrayA);
+    arrayB = to2DArray(arrayB);
     if (arrayA.length != arrayB.length) {
-        var nColumns = arrayA.reduce(_to_max_length_, 0);
-        nColumns = arrayB.reduce(_to_max_length_, nColumns);
+        var nColumnsA = arrayA.reduce(_to_max_length_, 0);
+        var nColumnsB = arrayB.reduce(_to_max_length_, 0);
 
         if (arrayA.length > arrayB.length)
             while (arrayA.length > arrayB.length) {
                 var row = [];
-                for (var i = 0; i < nColumns; i++) row.push("");
+                for (var i = 0; i < nColumnsB; i++) row.push("");
                 arrayB.push(row);
 
             }
         if (arrayB.length > arrayA.length)
             while (arrayB.length > arrayA.length) {
                 var row = [];
-                for (var i = 0; i < nColumns; i++) row.push("");
+                for (var i = 0; i < nColumnsA; i++) row.push("");
                 arrayA.push(row);
             }
     }
@@ -627,8 +627,7 @@ function equalizeNumbeOfRows_(arrayA, arrayB) {
  * @param {object|Array<object>|Array<Array<object>>} arrayB second array, if it's not will become one
  */
 function pushRow_(arrayA, arrayB) {
-    equalizeNumbeOfColumns_(arrayA);
-    equalizeNumbeOfColumns_(arrayB);
+    equalizeNumberOfColumns_(arrayA, arrayB);
 
     var newArray = [];
     for (var i = 0; i < arrayA.length; i++) {
@@ -1298,7 +1297,8 @@ module.exports = {
     safeAppend: safeAppend_,
     pushColumn: pushColumn_,
     pushRow: pushRow_,
-    equalizeNumbeOfColumns: equalizeNumbeOfColumns_,
+    equalizeNumberOfColumns: equalizeNumberOfColumns_,
+    equalizeNumberOfRows: equalizeNumberOfRows_,
     REMOVE_EMPTYROWS: REMOVE_EMPTYROWS,
     REMOVE_EMPTYCOLUMNS: REMOVE_EMPTYCOLUMNS,
     REMOVEROWS_WITH_EMPTYCOLUMN: REMOVEROWS_WITH_EMPTYCOLUMN,
