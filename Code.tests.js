@@ -4,18 +4,18 @@ const equalizeNumbeOfColumns = require('./Code.js').equalizeNumbeOfColumns;
 const SPLIT2D = require('./Code.js').SPLIT2D;
 
 const test = require("./my-test-lib").test;
-const and = require("./my-test-lib").and;
-const assert = require("./my-test-lib").assert;
-const group = require("./my-test-lib").group;
-const isEqual = require("./my-test-lib").isEqual;
+const expect = require("./my-test-lib").expect;
 const displayResults = require("./my-test-lib").displayResults;
 const saveLog = require("./my-test-lib").saveLog;
 
-test("teste equalizeNumberOfRows",
-    group("", assert.if(equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]]))
-        .isEqualTo([[1, 2, 3], [1, 2, ""], [1, "", ""]]
-            , "equalizeNumbeOfColumns([[1,2,3],[1,2],[1]])")
-    ));
+test("teste equalizeNumberOfRows", expect.group(
+    expect.thatResultOf(() => equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]]),
+        "equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]])")
+        .toBeEqual([[1, 2, 3], [1, 2, ""], [1, "", ""]])
+)
+);
+
+
 
 /*test("Testando push column", () => group(undefined,
     assert.equal(
