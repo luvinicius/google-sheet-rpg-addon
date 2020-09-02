@@ -104,10 +104,14 @@ function agroup(...assertions) {
 }
 
 class AssertationBuilder {
-    constructor(valueA, aliasValueA, functionForValueA) {
-        this.valueA = valueA;
-        this.aliasValueA = aliasValueA;
-        this.functionForValueA = functionForValueA;
+    /**
+     * @param {AssertionValuedParameters=} valueParameters 
+     */
+    constructor(valueParameters) {
+        if(valueParameters){
+            if(!valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
+            this.valueParameters = valueParameters;
+        }
     }
 
     toBeEqual(valueB, aliasValueB, functionForValueB) {
@@ -364,11 +368,15 @@ class NotAssertion extends Assertion {
     }
 }
 class AssertionValuedParameters{
-    constructor(value, 
-        aliasValue, 
-        functionToGetValue, 
-        mapValue, 
-        aliasMapValue) {
+    /**
+     * 
+     * @param {*=} value 
+     * @param {string=} aliasValue 
+     * @param {function=} functionToGetValue 
+     * @param {function=} mapValue a function to recieve value and tranform it, can be use to get a index into a array value or get a property in a object value
+     * @param {string=} aliasMapValue 
+     */
+    constructor(value, aliasValue, functionToGetValue, mapValue, aliasMapValue) {
         this.value = value;
         this.functionToGetValueA = functionToGetValue;
         if (aliasValue == undefined) this.aliasValue = functionToGetValue ? Logger.stringfy(functionToGetValue) : Logger.stringfy(value);
@@ -376,6 +384,7 @@ class AssertionValuedParameters{
         this.aliasMapValue = aliasMapValue;
     }
 }
+
 class MustBeAssertionParameters extends AssertionValuedParameters{
     /**
      * 
@@ -383,6 +392,8 @@ class MustBeAssertionParameters extends AssertionValuedParameters{
      * @param {AssertionValuedParameters} valueParametersB 
      */
     constructor(valueParametersA, valueParametersB) {
+        if(!valueParametersA instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
+        if(!valueParametersB instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
         this.valueParametersA = valueParametersA;
         this.valueParametersB = valueParametersB;
 
@@ -412,8 +423,14 @@ class MustBeAssertionParameters extends AssertionValuedParameters{
 }
 
 class MustBeAssertion extends Assertion {
+    /**
+     * 
+     * @param {MustBeAssertionParameters} config 
+     * @param {string} cmpDescription 
+     */
     constructor(config, cmpDescription) {
         super();
+        if(!valueParametersB instanceof MustBeAssertionParameters) throw new Error("valueParameters must be instance of "+ MustBeAssertionParameters.name);
         this.config = config;
         this.cmpDescription = cmpDescription;
     }
