@@ -53,7 +53,7 @@ function test(description, assertion) {
                 Logger.log(err);
                 nErrors++;
             }
-            __displayAssertionResult_(assertion, pass, assertionError, ` Expect ${assertion.prefix ? assertion.prefix : ''}`);
+            __displayAssertionResult_(assertion, pass, assertionError, ` Expect `);
             if (pass) Logger.log("Test Pass!");
             else Logger.log("Test Fail!");
         });
@@ -93,7 +93,7 @@ function agroup(...assertions) {
                 nGroupErrors++;
             }
 
-            __displayAssertionResult_(assertion, pass, assertionError, `${i + 1}) Expect ${assertion.prefix ? assertion.prefix : ''}`);
+            __displayAssertionResult_(assertion, pass, assertionError, `${i + 1}) Expect `);
             allAssertsTrue &= pass;
         }
 
@@ -103,24 +103,82 @@ function agroup(...assertions) {
     return expect.toReturnTrue(test);
 }
 
+class ValuedParametersBuilder{
+    constructor(originalBuilder, callback) {
+        this.originalBuilder = originalBuilder;
+        this.callback = callback;
+    }
+
+    get valueParameters(){
+        return this._valueParameters_;
+    }
+
+    set valueParameters(valueParameters){
+        if(!valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
+        this._valueParameters_ = valueParameters;
+    }
+
+    value(value, aliasValue){
+        this._valueParameters_ = new AssertionValuedParameters(value, aliasValue);
+        return this;
+    }
+
+    resultOf(functionForValue, aliasValue){
+        this._valueParameters_ = new AssertionValuedParameters(undefined, aliasValue,functionForValue);
+        return this;
+    }
+
+    index(i, aliasIndex){
+        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call index. You can call value or resultOf to define valueParameters");
+        this.valueParameters.mapValue = (value)=>value[i];
+        this.valueParameters.aliasMapValue = aliasIndex;
+        return this;
+    }
+
+    key(keyName, aliasKeyName){
+        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call keyName. You can call value or resultOf to define valueParameters");
+        this.valueParameters.mapValue = (value)=>value[keyName];
+        this.valueParameters.aliasMapValue = aliasKeyName;
+        return this;
+    }
+
+    mapedTo(func, aliasMap){
+        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call keyName. You can call value or resultOf to define valueParameters");
+        this.valueParameters.mapValue = func;
+        this.valueParameters.aliasMapValue = aliasMap;
+        return this;
+    }
+    get toBe(){
+        return this.callback;
+    }
+}
+
 class AssertationBuilder {
     /**
      * @param {AssertionValuedParameters=} valueParameters 
      */
-    constructor(valueParameters) {
-        if(valueParameters){
-            if(!valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
-            this.valueParameters = valueParameters;
-        }
+    constructor() {}
+
+    get valueParameters(){
+        return this._valueParameters_;
     }
 
-    toBeEqual(valueB, aliasValueB, functionForValueB) {
-        return this._toBe_(MustBeEqualAssertion, valueB, aliasValueB, functionForValueB);
+    set valueParameters(valueParameters){
+        if(!valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
+        this._valueParameters_ = valueParameters;
     }
 
-    _toBe_(mustBeConstructor, valueB, aliasValueB, functionForValueB) {
-        if (!this.valueA && !this.functionForValueA) throw new Error("must to be defined valueA before call isEqualTo, con do it by calling if");
-        return this._build_(new mustBeConstructor(this.valueA, valueB, this.aliasValueA, aliasValueB, this.functionForValueA, functionForValueB));
+    
+
+    toBeEqual(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
+        return this._toBe_(MustBeEqualAssertion, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
+    }
+
+    _toBe_(mustBeConstructor, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
+        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call to be. You can call value or resultOf to define valueParameters");
+        let valueParametersB = new AssertionValuedParameters(valueB,aliasValueB,functionForValueB, valueBMapper, aliasForValueBMapper);
+        let mustBeParameters = new MustBeAssertionParameters(this.valueParameters, valueParametersB);
+        return this._build_(new mustBeConstructor(mustBeParameters));
     }
 
     _build_(assertion) {
@@ -132,12 +190,9 @@ class AssertationBuilder {
         } else this.assertion = assertion;
         return this.assertion;
     }
-    get true() {
-        if (this._true_ == undefined) this._true_ = this.test(this);
-        return this._true_;
-    }
-    toBeEqualResultOf(functionForValueB, aliasFunctionForValueN) {
-        return this.toBeEqual(undefined, aliasFunctionForValueN, functionForValueB);
+
+    toBeEqualResultOf(functionForValueB, aliasFunctionForValueB, valueBMapper, aliasForValueBMapper) {
+        return this.toBeEqual(undefined, aliasFunctionForValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
     }
 
     toBeTrue() {
@@ -148,20 +203,20 @@ class AssertationBuilder {
         return this.toBeEqual(true, "False");
     }
 
-    toBeGreaterThan(valueB, aliasValueB, functionForValueB) {
-        return this._toBe_(MustBeGreatherAssertion, valueB, aliasValueB, functionForValueB);
+    toBeGreaterThan(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
+        return this._toBe_(MustBeGreatherAssertion, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
     }
 
-    toBeEqualOrGreaterThan(valueB, aliasValueB, functionForValueB) {
-        return this._toBe_(MustBeEqualOrGreatherAssertion, valueB, aliasValueB, functionForValueB);
+    toBeEqualOrGreaterThan(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
+        return this._toBe_(MustBeEqualOrGreatherAssertion, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
     }
 
-    toBeLessThan(valueB, aliasValueB, functionForValueB) {
-        return this._toBe_(MustBeLessAssertion, valueB, aliasValueB, functionForValueB);
+    toBeLessThan(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
+        return this._toBe_(MustBeLessAssertion, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
     }
 
-    toBeEqualOrLessThan(valueB, aliasValueB, functionForValueB) {
-        return this._toBe_(MustBeEqualOrLessAssertion, valueB, aliasValueB, functionForValueB);
+    toBeEqualOrLessThan(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
+        return this._toBe_(MustBeEqualOrLessAssertion, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
     }
 
     get not() {
@@ -181,8 +236,6 @@ class AssertationBuilder {
         return this._build_(new TestAssertion(testFunction, description, failMsg));
     }
 
-    get expect() { return expect; }
-
     set assertion(assertion) {
         this._assertion_ = assertion;
     }
@@ -193,10 +246,10 @@ class AssertationBuilder {
 
 var expect = {
     value: function (value, aliasValue) {
-        return new AssertationBuilder(value, aliasValue);
+        return new AssertationBuilder().value(value, aliasValue);
     },
     thatResultOf: function (functionForValue, aliasValue) {
-        return new AssertationBuilder(undefined, aliasValue, functionForValue);
+        return new AssertationBuilder().resultOf(functionForValue, aliasValue);
     },
     group: agroup,
     all: function (...assertions) {
@@ -239,15 +292,6 @@ class Assertion {
             this.builder.assertation = new OrAssertion().append(this).putPrefix(this.prefix);
             return this.builder;
         } else throw Error("Assertion must be build by a builder to use or instruction");
-    }
-
-    get prefix() {
-        return this._prefix_;
-    }
-
-    putPrefix(prefix) {
-        this._prefix_ = prefix;
-        return this;
     }
 
     setDescription(description){
