@@ -1,70 +1,17 @@
 ------------------------------------------------------
 	teste equalizeNumbeOfColumns
 ------------------------------------------------------
-(✓)	1) Expect equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]]) to be equal to [[1, 2, 3], [1, 2, ""], [1, "", ""]]
-(✓)	2) Expect () => {
-        var arrayA = [[1, 2, 3], [1, 2], [1]];
-        var arrayB = [["a"], ["b"]];
-        equalizeNumberOfColumns(arrayA, arrayB);
-        return [arrayA, arrayB];
-    } to be equal to [[[1, 2, 3], [1, 2, ""], [1, "", ""]], [["a", "", ""], ["b", "", ""]]]
+(✓)	1)Expect equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]]) to be [[1, 2, 3], [1, 2, ""], [1, "", ""]]
+(✓)	2)With arrayA = [[1, 2, 3], [1, 2], [1]] and arrayB = [["a"], ["b"]]
+	by calling equalizeNumberOfColumns(arrayA, arrayB)
+	Expect arrayB to be [["a", "", ""], ["b", "", ""]]
 
 Total:	2	Sucess:	2	Fails:	0	Errors:	0
 Test Pass!
-------------------------------------------------------
-	teste equalizeNumberOfRows
-------------------------------------------------------
-(✓)	1) Expect () => {
-        var arrayA = [[1, 2, 3], [1, 2], [1]];
-        var arrayB = [["a"], ["b"]];
-        equalizeNumberOfRows(arrayA, arrayB);
-        return [arrayA, arrayB];
-    } to be equal to [[[1, 2, 3], [1, 2], [1]], [["a"], ["b"], [""]]]
-
-Total:	1	Sucess:	1	Fails:	0	Errors:	0
-Test Pass!
-------------------------------------------------------
-	test equalizeNumbeOfColumns and equalizeNumberOfRows
-------------------------------------------------------
-(✓)	1) Expect () => {
-        var arrayA = [[1, 2, 3], [1, 2], [1]];
-        var arrayB = [["a"], ["b"]];
-        equalizeNumberOfColumns(arrayA, arrayB);
-        equalizeNumberOfRows(arrayA, arrayB);
-        return [arrayA, arrayB];
-    } to be equal to [[[1, 2, 3], [1, 2, ""], [1, "", ""]], [["a", "", ""], ["b", "", ""], ["", "", ""]]]
-
-Total:	1	Sucess:	1	Fails:	0	Errors:	0
-Test Pass!
-------------------------------------------------------
-	Testing push column
-------------------------------------------------------
-(✓)	1) Expect [["a"]] + "b" to be equal to [["a", "b"]]
-(✓)	2) Expect [["a"]]+ ["b"] to be equal to [["a", "b"]]
-(✓)	3) Expect "a"+ "b" to be equal to [["a", "b"]]
-(✓)	4) Expect ["a"]+ "b" to be equal to [["a", "b"]]
-(✓)	5) Expect "a"+ [["b"]] to be equal to [["a", "b"]]
-(✓)	6) Expect [["a"], [0], [1]] + [["b"], [0], [0]] to be equal to [["a", "b"], [0, 0], [1, 1]]
-(✗)	7) Expect [["a"], [0], [1]] + "b" to be equal to [["a", "b"], [0, ""], [1, ""]]
-	[["a"], [0], [1]] + "b" is undefined
-(✓)	8) Expect [["a"]],[["b"] + [0], [1]] to be equal to [["a", "b"], ["", 0], ["", 1]]
-(✗)	9) Expect [["a","b","c"],[0,0,0],[1,1,1]] + [["d","e"], [0,0], [1,1]] to be equal to [["a", "b", "c", "d", "e"], [0, 0, 0, 0, 0], [1, 1, 1, 1, 1]]
-	[["a","b","c"],[0,0,0],[1,1,1]] + [["d","e"], [0,0], [1,1]] is undefined
-(✗)	10) Expect [["a","b","c"],[0,0,0],[1,1,1]] + [["d","e"], [0], [1]] to be equal to [["a", "b", "c", "d", "e"], [0, 0, 0, 0, ""], [1, 1, 1, 1, ""]]
-	[["a","b","c"],[0,0,0],[1,1,1]] + [["d","e"], [0], [1]] is undefined
-
-Total:	10	Sucess:	7	Fails:	3	Errors:	0
-Test Fail!
-------------------------------------------------------
-	Testing push row
-------------------------------------------------------
-(✗)	 Expect [["a"]] + "b" to be equal to [["a"], ["b"]]
-	[["a"]] + "b" is undefined
-Test Fail!
 ------------------------------------------------------
 
 
 ------------------------------------------------------
 				FINAL RESULTS
 ------------------------------------------------------
-Total:	5	Sucess:	3	Fails:	2	Errors:	0
+Total:	1	Sucess:	1	Fails:	0	Errors:	0

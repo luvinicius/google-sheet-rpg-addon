@@ -25,17 +25,21 @@ var Logger = {
 }
 
 var tests = [];
+var passedTests = [];
 var nTests = 0, nSuccess = 0, nFails = 0, nErrors = 0;
 
 
 /**
+ * @returns {number} The index id of the text
  * @param {string} description 
- * @param {Assertion} assertion A function that return AssertResult and dont need
- * any parameter, you can ecapsulate return of AssertResult in assert() ou group() methods
+ * @param {Assertion} assertion use execute to build assertions
+ * @param {number..., Array<number>...} executeIfPassed,... index id (or ids) of test that must to be passased to execute this test
  */
-function test(description, assertion) {
+function test(description, assertion, ...executeIfPassed) {
     if (assertion instanceof Assertion) {
-        tests.push(function () {
+        return tests.push(function () {
+            if (executeIfPassed && !executeIfPassed.every((test) => passedTests.includes(test))) return false;
+
             Logger.log("------------------------------------------------------",
                 "\n\t", description,
                 "\n------------------------------------------------------");
@@ -53,16 +57,19 @@ function test(description, assertion) {
                 Logger.log(err);
                 nErrors++;
             }
-            __displayAssertionResult_(assertion, pass, assertionError, ` Expect `);
+            __displayAssertionResult_(assertion, pass, assertionError);
             if (pass) Logger.log("Test Pass!");
             else Logger.log("Test Fail!");
-        });
+            return pass;
+        }) - 1;
     } else throw new Error("assertion must be instance of Assertion");
 }
 
 function __displayAssertionResult_(assertion, pass, assertionError, descriptionPrefix) {
     let indicator = pass ? "(✓)" : "(✗)";
     if (typeof descriptionPrefix != "string") descriptionPrefix = "";
+    if (assertion.title) descriptionPrefix = `${descriptionPrefix}${assertion.title}\n\t`;
+    descriptionPrefix = `${descriptionPrefix}Expect `;
     if (assertion.description) Logger.log(indicator, "\t", descriptionPrefix, assertion.description);
     if (assertionError) {
         if (assertionError.message) Logger.log(assertionError.message);
@@ -93,7 +100,7 @@ function agroup(...assertions) {
                 nGroupErrors++;
             }
 
-            __displayAssertionResult_(assertion, pass, assertionError, `${i + 1}) Expect `);
+            __displayAssertionResult_(assertion, pass, assertionError, `${i + 1})`);
             allAssertsTrue &= pass;
         }
 
@@ -103,80 +110,57 @@ function agroup(...assertions) {
     return expect.toReturnTrue(test);
 }
 
-class ValuedParametersBuilder{
-    constructor(originalBuilder, callback) {
-        this.originalBuilder = originalBuilder;
-        this.callback = callback;
-    }
 
-    get valueParameters(){
+class AssertationBuilder {
+    constructor() { }
+
+    get valueParameters() {
         return this._valueParameters_;
     }
 
-    set valueParameters(valueParameters){
-        if(!valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
+    set valueParameters(valueParameters) {
+        if (!valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of " + AssertionValuedParameters.name);
         this._valueParameters_ = valueParameters;
     }
 
-    value(value, aliasValue){
+    value(value, aliasValue) {
         this._valueParameters_ = new AssertionValuedParameters(value, aliasValue);
         return this;
     }
 
-    resultOf(functionForValue, aliasValue){
-        this._valueParameters_ = new AssertionValuedParameters(undefined, aliasValue,functionForValue);
+    resultOf(functionForValue, aliasValue) {
+        this._valueParameters_ = new AssertionValuedParameters(undefined, aliasValue, functionForValue);
         return this;
     }
 
-    index(i, aliasIndex){
-        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call index. You can call value or resultOf to define valueParameters");
-        this.valueParameters.mapValue = (value)=>value[i];
+    index(i, aliasIndex) {
+        if (!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call index. You can call value or resultOf to define valueParameters");
+        this.valueParameters.mapValue = (value) => value[i];
         this.valueParameters.aliasMapValue = aliasIndex;
         return this;
     }
 
-    key(keyName, aliasKeyName){
-        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call keyName. You can call value or resultOf to define valueParameters");
-        this.valueParameters.mapValue = (value)=>value[keyName];
+    key(keyName, aliasKeyName) {
+        if (!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call keyName. You can call value or resultOf to define valueParameters");
+        this.valueParameters.mapValue = (value) => value[keyName];
         this.valueParameters.aliasMapValue = aliasKeyName;
         return this;
     }
 
-    mapedTo(func, aliasMap){
-        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call keyName. You can call value or resultOf to define valueParameters");
+    mapedTo(func, aliasMap) {
+        if (!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call keyName. You can call value or resultOf to define valueParameters");
         this.valueParameters.mapValue = func;
         this.valueParameters.aliasMapValue = aliasMap;
         return this;
     }
-    get toBe(){
-        return this.callback;
-    }
-}
-
-class AssertationBuilder {
-    /**
-     * @param {AssertionValuedParameters=} valueParameters 
-     */
-    constructor() {}
-
-    get valueParameters(){
-        return this._valueParameters_;
-    }
-
-    set valueParameters(valueParameters){
-        if(!valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
-        this._valueParameters_ = valueParameters;
-    }
-
-    
 
     toBeEqual(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
         return this._toBe_(MustBeEqualAssertion, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
     }
 
     _toBe_(mustBeConstructor, valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
-        if(!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call to be. You can call value or resultOf to define valueParameters");
-        let valueParametersB = new AssertionValuedParameters(valueB,aliasValueB,functionForValueB, valueBMapper, aliasForValueBMapper);
+        if (!this.valueParameters instanceof AssertionValuedParameters) throw new Error("valueParameters must be defined to call to be. You can call value or resultOf to define valueParameters");
+        let valueParametersB = new AssertionValuedParameters(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
         let mustBeParameters = new MustBeAssertionParameters(this.valueParameters, valueParametersB);
         return this._build_(new mustBeConstructor(mustBeParameters));
     }
@@ -225,11 +209,11 @@ class AssertationBuilder {
     }
 
     all(...assertions) {
-        return this._build_(new AndAssertion(...assertions));
+        return this._build_(new AndAssertion(undefined, ...assertions));
     }
 
     any(...assertions) {
-        return this._build_(new OrAssertion(...assertions));
+        return this._build_(new OrAssertion(undefined, ...assertions));
     }
 
     returnToBeTrue(testFunction, description, failMsg) {
@@ -267,8 +251,8 @@ var expect = {
 class Assertion {
 
     constructor() {
-        this.description = undefined;
-        this.failMsg = undefined;
+        this._description_ = undefined;
+        this._failMsg_ = undefined;
     }
 
     test() {
@@ -282,23 +266,43 @@ class Assertion {
 
     get and() {
         if (this.builder) {
-            this.builder.assertation = new AndAssertion().append(this).putPrefix(this.prefix);
+            this.builder.assertation = new AndAssertion(undefined, this);
             return this.builder;
         } else throw Error("Assertion must be build by a builder to use and instruction");
     }
 
     get or() {
         if (this.builder) {
-            this.builder.assertation = new OrAssertion().append(this).putPrefix(this.prefix);
+            this.builder.assertation = new OrAssertion(undefined, this);
             return this.builder;
         } else throw Error("Assertion must be build by a builder to use or instruction");
     }
 
-    setDescription(description){
-        this.description = description;
+    get description() { return this._description_; }
+    set description(description) { this._description_ = description; }
+    setDescription(description) {
+        this._description_ = description;
+        return this;
+    }
+    get failMsg() { return this._failMsg_; }
+    set failMsg(failMsg) { this._failMsg_ = failMsg; }
+    setFailMsg(failMsg) {
+        this._failMsg_ = failMsg;
         return this;
     }
 
+    setTitle(title) {
+        this.title = title;
+        return this;
+    }
+
+    get title() {
+        return this._title_;
+    }
+
+    set title(title) {
+        this._title_ = title;
+    }
 }
 
 class TestAssertion extends Assertion {
@@ -307,93 +311,6 @@ class TestAssertion extends Assertion {
         this.test = test;
         this.description = description;
         this.failMsg = failMsg;
-    }
-}
-
-class AssertionGroup extends Assertion {
-    constructor(superGroup, descriptionDelimiter, failMsgDelimiter, ...assertions) {
-        super();
-        this.superGroup = superGroup;
-        this.descriptionDelimiter = descriptionDelimiter;
-        this.failMsgDelimiter = failMsgDelimiter;
-        this.assertions = assertions ? assertions : [];
-    }
-
-    append(assertion) {
-        if (assertion instanceof Assertion) {
-            this.assertions.push(assertion);
-        } else throw new Error("And must recieve a instance of Assertion");
-        return this;
-    }
-
-    get description() {
-        let msg = ''
-
-        for (let i = 0; i < this.assertions.length; i++) {
-            let current = this.assertions[i];
-            let description = current.description;
-            if (i > 0
-                && this.assertions[i - 1].builder == current.builder
-                && description.match(/to be .*$/)) {
-
-                description = description.match(/to be .*$/)[0];
-            }
-
-            msg = `${msg}${i > 0 ? this.descriptionDelimiter : ''}${description}`
-        }
-        return msg;
-    }
-
-    get failMsg() {
-        let msg = ''
-        let builders = [];
-        for (i in this.assertions) {
-            let current = this.assertions[i];
-            if (!current.builder || !builders.includes(current.builder)) {
-                builders.push(current.builder);
-                msg = `${msg}${i > 0 ? this.failMsgDelimiter : ''}${current.failMsg}`
-            }
-        }
-        return msg;
-    }
-
-    get and() {
-        if (this.builder) {
-            this.builder.assertation = new AndAssertion(this).append(this).putPrefix(this.prefix);
-            return this.builder;
-        } else throw Error("Assertion must be build by a builder to use and instruction");
-    }
-
-    get or() {
-        if (this.builder) {
-            this.builder.assertation = new OrAssertion(this).append(this).putPrefix(this.prefix);
-            return this.builder;
-        } else throw Error("Assertion must be build by a builder to use or instruction");
-    }
-}
-
-class AndAssertion extends AssertionGroup {
-    constructor(superGroup, ...assertions) { super(superGroup, " and ", " and ", ...assertions); }
-
-    test() { return this.assertions.reduce((beforeTrue, current) => beforeTrue && current.true, true); }
-
-    get and() {
-        if (this.builder) {
-            return this.builder;
-        } else throw Error("Assertion must be build by a builder to use and instruction");
-    }
-
-}
-
-class OrAssertion extends Assertion {
-    constructor(superGroup, ...assertions) { super(superGroup, " or ", " and ", ...assertions) }
-
-    test() { return this.assertions.reduce((beforeTrue, current) => beforeTrue || current.true, false); }
-
-    get or() {
-        if (this.builder) {
-            return this.builder;
-        } else throw Error("Assertion must be build by a builder to use or instruction");
     }
 }
 
@@ -411,7 +328,7 @@ class NotAssertion extends Assertion {
         return this.assertation.failMsg;
     }
 }
-class AssertionValuedParameters{
+class AssertionValuedParameters {
     /**
      * 
      * @param {*=} value 
@@ -422,97 +339,161 @@ class AssertionValuedParameters{
      */
     constructor(value, aliasValue, functionToGetValue, mapValue, aliasMapValue) {
         this.value = value;
-        this.functionToGetValueA = functionToGetValue;
+        this.functionToGetValue = functionToGetValue;
         if (aliasValue == undefined) this.aliasValue = functionToGetValue ? Logger.stringfy(functionToGetValue) : Logger.stringfy(value);
+        else this.aliasValue = aliasValue;
         this.mapValue = mapValue;
         this.aliasMapValue = aliasMapValue;
     }
 }
 
-class MustBeAssertionParameters extends AssertionValuedParameters{
+class MustBeAssertionParameters {
     /**
      * 
      * @param {AssertionValuedParameters} valueParametersA 
      * @param {AssertionValuedParameters} valueParametersB 
      */
     constructor(valueParametersA, valueParametersB) {
-        if(!valueParametersA instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
-        if(!valueParametersB instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of "+ AssertionValuedParameters.name);
+        if (!valueParametersA instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of " + AssertionValuedParameters.name);
+        if (!valueParametersB instanceof AssertionValuedParameters) throw new Error("valueParameters must be instance of " + AssertionValuedParameters.name);
         this.valueParametersA = valueParametersA;
         this.valueParametersB = valueParametersB;
-
-        this.valueA = valueA;
-        this.valueB = valueB;
-        this.functionToGetValueA = functionToGetValueA;
-        this.functionToGetValueB = functionToGetValueB;
-        if (aliasValueA == undefined) aliasValueA = functionToGetValueA ? Logger.stringfy(functionToGetValueA) : Logger.stringfy(valueA);
-        if (aliasValueB == undefined) aliasValueB = functionToGetValueB ? Logger.stringfy(functionToGetValueB) : Logger.stringfy(valueB);
-        this.mapValue = mapValueA;
-        this.aliasMapValue = aliasMapValueA;
-        this.mapValueB = mapValueB;
-        this.aliasMapValueB = aliasMapValueB;
-
     }
-    get aliasValueA(){ return this.valueParametersA.aliasValue;}
-    get valueA(){ return this.valueParametersA.value;}
-    get functionToGetValueA(){ return this.valueParametersA.functionToGetValue;}
-    get mapValueA(){return this.valueParametersA.mapValue;}
-    get aliasMapValueA(){return this.valueParametersA.aliasMapValue;}
 
-    get aliasValueA(){ return this.valueParametersA.aliasValue;}
-    get valueA(){ return this.valueParametersA.value;}
-    get functionToGetValueA(){ return this.valueParametersA.functionToGetValue;}
-    get mapValueA(){return this.valueParametersA.mapValue;}
-    get aliasMapValueA(){return this.valueParametersA.aliasMapValue;}
+    get aliasValueA() { return this.valueParametersA.aliasValue; }
+    set aliasValueA(aliasValueA) { this.valueParametersA.aliasValue = aliasValueA; }
+    get valueA() { return this.valueParametersA.value; }
+    set valueA(valueA) { this.valueParametersA.value = valueA; }
+    get functionToGetValueA() { return this.valueParametersA.functionToGetValue; }
+    set functionToGetValueA(functionToGetValueA) { this.valueParametersA.functionToGetValue = functionToGetValueA; }
+    get mapValueA() { return this.valueParametersA.mapValue; }
+    set mapValueA(mapValueA) { this.valueParametersA.mapValue = mapValueA; }
+    get aliasMapValueA() { return this.valueParametersA.aliasMapValue; }
+    set aliasMapValueA(aliasMapValueA) { this.valueParametersA.aliasMapValue = aliasMapValueA; }
+
+    get aliasValueB() { return this.valueParametersB.aliasValue; }
+    set aliasValueB(aliasValueB) { this.valueParametersB.aliasValue = aliasValueB; }
+    get valueB() { return this.valueParametersB.value; }
+    set valueB(valueB) { this.valueParametersB.value = valueB; }
+    get functionToGetValueB() { return this.valueParametersB.functionToGetValue; }
+    set functionToGetValueB(functionToGetValueB) { this.valueParametersB.functionToGetValue = functionToGetValueB; }
+    get mapValueB() { return this.valueParametersB.mapValue; }
+    set mapValueB(mapValueB) { this.valueParametersB.mapValue = mapValueB; }
+    get aliasMapValueB() { return this.valueParametersB.aliasMapValue; }
+    set aliasMapValueB(aliasMapValueB) { this.valueParametersB.aliasMapValue = aliasMapValueB; }
 }
 
 class MustBeAssertion extends Assertion {
     /**
      * 
-     * @param {MustBeAssertionParameters} config 
+     * @param {MustBeAssertionParameters} parameters 
      * @param {string} cmpDescription 
      */
-    constructor(config, cmpDescription) {
+    constructor(parameters, cmpDescription) {
         super();
-        if(!valueParametersB instanceof MustBeAssertionParameters) throw new Error("valueParameters must be instance of "+ MustBeAssertionParameters.name);
-        this.config = config;
+        if (!parameters instanceof MustBeAssertionParameters) throw new Error("valueParameters must be instance of " + MustBeAssertionParameters.name);
+        this.parameters = parameters;
         this.cmpDescription = cmpDescription;
+        super.description = '{aliasValueA}{aliasMapValueA} to be {aliasValueB}{aliasMapValueB}';
+        super.failMsg = '{aliasValueA}{aliasMapValueA} is {valueAFinal} not {valueBFinal} as expected';
     }
 
-    get aliasValueA(){}
-    get aliasMapValueA(){}
-    get aliasValueB(){}
-    get aliasMapValueB(){}
+    _format_(text) {
+        text = text
+            .replace(/\{aliasValueA\}/g, this.aliasValueA ? this.aliasValueA : "")
+            .replace(/\{aliasMapValueA\}/g, this.aliasMapValueA ? this.aliasMapValueA : "")
+            .replace(/\{aliasValueB\}/g, this.aliasValueB ? this.aliasValueB : "")
+            .replace(/\{aliasMapValueB\}/g, this.aliasMapValueB ? this.aliasMapValueB : "");
+        if (text.match(/\{valueAFinal\}/)) {
+            text = text.replace(/\{valueAFinal\}/g, Logger.stringfy(this.valueAFinal));
+        }
+        if (text.match(/\{valueBFinal\}/)) {
+            text = text.replace(/\{valueBFinal\}/g, Logger.stringfy(this.valueBFinal));
+        }
+        return text;
+    }
 
     get description() {
-        return `${this.aliasValueA}${this.aliasMapValueA ? this.aliasMapValueA : ''} to be ${this.cmpDescription} ${this.aliasValueB}${this.aliasMapValueB ? this.aliasMapValueB : ''}`;
+        return this._format_(super.description);
+    }
+
+
+    get failMsg() {
+        return this._format_(super.failMsg);
     }
 
     test() {
-        this.valueA = this.config.valueA;
-        this.valueA = this.config.valueB;
-        if (this.config.functionToGetValueA) this.valueA = this.config.functionToGetValueA();
-        if (this.config.functionToGetValueB) this.valueA = this.config.functionToGetValueB();
-        if (this.config.mapValueA) this.valueA = this.config.mapValueA(this.valueA);
-        if (this.config.mapValueB) this.valueB = this.config.mapValueB(this.valueB);
-        return this.cmp(this.valueA, this.valueB);
+        return this.cmp(this.valueAFinal, this.valueBFinal);
     }
 
     cmp(valueA, valueB) { throw new Error("Must Be cmp must be overrided"); }
 
-    get failMsg() {
-        return `${aliasValueA} is ${Logger.stringfy(this.valueA)}`;
+    index(i, aliasIndex) {
+        this.mapValueB = (value) => value[i];
+        this.aliasMapValueB = aliasIndex;
+        return this;
+    }
+
+    key(keyName, aliasKeyName) {
+        this.mapValueB = (value) => value[keyName];
+        this.aliasMapValueB = aliasKeyName;
+        return this;
+    }
+
+    mapedTo(func, aliasMap) {
+        this.mapValueB = func;
+        this.aliasMapValueB = aliasMap;
+        return this;
+    }
+
+
+    get aliasValueA() { return this.parameters.aliasValueA; }
+    set aliasValueA(aliasValueA) { this.parameters.aliasValueA = aliasValueA; }
+    get valueA() { return this.parameters.valueA; }
+    get valueAFinal() {
+        if (this._valueAFinal_ === undefined) {
+            this._valueAFinal_ = this.valueA;
+            if (this.functionToGetValueA) this._valueAFinal_ = this.functionToGetValueA();
+            if (this.mapValueA) this._valueAFinal_ = this.mapValueA(this._valueAFinal_);
+        }
+        return this._valueAFinal_;
+    }
+    set valueA(valueA) { this.parameters.valueA = valueA; }
+    get functionToGetValueA() { return this.parameters.functionToGetValueA; }
+    set functionToGetValueA(functionToGetValueA) { this.parameters.functionToGetValueA = functionToGetValueA; }
+    get mapValueA() { return this.parameters.mapValueA; }
+    set mapValueA(mapValueA) { this.parameters.mapValueA = mapValueA; }
+    get aliasMapValueA() { return this.parameters.aliasMapValueA; }
+    set aliasMapValueA(aliasMapValueA) { this.parameters.aliasMapValueA = aliasMapValueA; }
+
+    get aliasValueB() { return this.parameters.aliasValueB; }
+    set aliasValueB(aliasValueB) { this.parameters.aliasValueB = aliasValueB; }
+    get valueB() { return this.parameters.valueB; }
+    set valueB(valueB) { this.parameters.valueB = valueB; }
+    get functionToGetValueB() { return this.parameters.functionToGetValueB; }
+    set functionToGetValueB(functionToGetValueB) { this.parameters.functionToGetValueB = functionToGetValueB; }
+    get mapValueB() { return this.parameters.mapValueB; }
+    set mapValueB(mapValueB) { this.parameters.mapValueB = mapValueB; }
+    get aliasMapValueB() { return this.parameters.aliasMapValueB; }
+    set aliasMapValueB(aliasMapValueB) { this.parameters.aliasMapValueB = aliasMapValueB; }
+    get valueBFinal() {
+        if (this._valueBFinal_ === undefined) {
+            this._valueBFinal_ = this.valueB;
+            if (this.functionToGetValueB) this._valueBFinal_ = this.functionToGetValueB();
+            if (this.mapValueB) this._valueBFinal_ = this.mapValueA(this._valueBFinal_);
+        }
+        return this._valueBFinal_;
     }
 }
 
 class MustBeEqualAssertion extends MustBeAssertion {
-    constructor(config) { super(config, "equal to");}
+    constructor(config) { super(config, "equal to"); }
 
     cmp(valueA, valueB) {
         if (Array.isArray(valueA)) {
             if (Array.isArray(valueB)
                 && valueA.length == valueB.length) {
-                for (i in valueA) {
+                for (let i = 0; i < valueA.length; i++) {
                     if (this.cmp(valueA[i], valueB[i]) != true) {
                         return false;
                     }
@@ -528,31 +509,111 @@ class MustBeEqualAssertion extends MustBeAssertion {
 }
 
 class MustBeGreatherAssertion extends MustBeAssertion {
-    constructor(config) { super(config, "greater than");}
+    constructor(config) { super(config, "greater than"); }
     cmp(valueA, valueB) { return valueA > valueB }
 }
 
 class MustBeEqualOrGreatherAssertion extends MustBeAssertion {
-    constructor(config) { super(config, "equal or greater than");}
+    constructor(config) { super(config, "equal or greater than"); }
     cmp(valueA, valueB) { return valueA >= valueB }
 }
 
 class MustBeLessAssertion extends MustBeAssertion {
-    constructor(config) { super(config, "less than");}
+    constructor(config) { super(config, "less than"); }
     cmp(valueA, valueB) { return valueA < valueB }
 }
 
 class MustBeEqualOrLessAssertion extends MustBeAssertion {
-    constructor(config) { super(config, "equal or less than");}
+    constructor(config) { super(config, "equal or less than"); }
     cmp(valueA, valueB) { return valueA <= valueB }
 }
 
+
+class AssertionGroup extends Assertion {
+    constructor(superGroup, descriptionDelimiter, failMsgDelimiter, ...assertions) {
+        super();
+        this.superGroup = superGroup;
+        this.descriptionDelimiter = descriptionDelimiter;
+        this.failMsgDelimiter = failMsgDelimiter;
+        this._assertions_ = assertions ? assertions : [];
+    }
+
+    append(assertion) {
+        if (assertion instanceof Assertion) {
+            this._assertions_.push(assertion);
+        } else throw new Error("And must recieve a instance of Assertion");
+        return this;
+    }
+
+    get description() {
+        let msg = ''
+
+        for (let i = 0; i < this._assertions_.length; i++) {
+            let current = this._assertions_[i];
+            let description = current.description;
+            msg = `${msg}${i > 0 ? this.descriptionDelimiter : ''}${description}`
+        }
+        return msg;
+    }
+
+    get failMsg() {
+        let msg = ''
+        let builders = [];
+        for (i in this._assertions_) {
+            let current = this._assertions_[i];
+            if (!current.builder || !builders.includes(current.builder)) {
+                builders.push(current.builder);
+                msg = `${msg}${i > 0 ? this.failMsgDelimiter : ''}${current.failMsg}`
+            }
+        }
+        return msg;
+    }
+
+    get and() {
+        if (this.builder) {
+            this.builder.assertation = new AndAssertion(this, this);
+            return this.builder;
+        } else throw Error("Assertion must be build by a builder to use and instruction");
+    }
+
+    get or() {
+        if (this.builder) {
+            this.builder.assertation = new OrAssertion(this, this);
+            return this.builder;
+        } else throw Error("Assertion must be build by a builder to use or instruction");
+    }
+}
+
+class AndAssertion extends AssertionGroup {
+    constructor(superGroup, ...assertions) { super(superGroup, " and ", "\nand ", ...assertions); }
+
+    test() { return this._assertions_.reduce((beforeTrue, current) => beforeTrue && current.true, true); }
+
+    get and() {
+        if (this.builder) {
+            return this.builder;
+        } else throw Error("Assertion must be build by a builder to use and instruction");
+    }
+
+}
+
+class OrAssertion extends Assertion {
+    constructor(superGroup, ...assertions) { super(superGroup, " or ", "\nand ", ...assertions) }
+
+    test() { return this.assertions.reduce((beforeTrue, current) => beforeTrue || current.true, false); }
+
+    get or() {
+        if (this.builder) {
+            return this.builder;
+        } else throw Error("Assertion must be build by a builder to use or instruction");
+    }
+}
 
 /**
  * 
  */
 function displayResults() {
-    for (i in tests) tests[i]();
+    tests.forEach((test, i) => { if (test()) passedTests.push(i) });
 
     Logger.log("------------------------------------------------------\n\n");
     Logger.log("------------------------------------------------------\n\t\t\t\tFINAL RESULTS\n------------------------------------------------------")

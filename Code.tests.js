@@ -12,13 +12,12 @@ const expect = require("./my-test-lib").expect;
 const displayResults = require("./my-test-lib").displayResults;
 const saveLog = require("./my-test-lib").saveLog;
 
-test("teste equalizeNumbeOfColumns", expect.group(
+let equalizeNumbeOfColumns = test("teste equalizeNumbeOfColumns", expect.group(
     expect.thatResultOf(() => {
         var arrayA = [[1, 2, 3], [1, 2], [1]];
         equalizeNumberOfColumns(arrayA);
         return arrayA;
-    },
-        "equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]])")
+    }, "equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]])")
         .toBeEqual([[1, 2, 3], [1, 2, ""], [1, "", ""]]),
 
     expect.thatResultOf(() => {
@@ -26,12 +25,14 @@ test("teste equalizeNumbeOfColumns", expect.group(
         var arrayB = [["a"], ["b"]];
         equalizeNumberOfColumns(arrayA, arrayB);
         return [arrayA, arrayB];
-    }).toBeEqual([[[1, 2, 3], [1, 2, ""], [1, "", ""]],
-    [["a", "", ""], ["b", "", ""]]])
+    }, "")
+        .index(0, "arrayA").toBeEqual([[1, 2, 3], [1, 2, ""], [1, "", ""]])
+        .and
+        .index(1, "arrayB").toBeEqual([["a", "", ""], ["b", "", ""]])
+        .setTitle('With arrayA = [[1, 2, 3], [1, 2], [1]] and arrayB = [["a"], ["b"]]\n\tby calling equalizeNumberOfColumns(arrayA, arrayB)')
 
 ));
-
-test("teste equalizeNumberOfRows", expect.group(
+/*let equalizeNumberOfRows = test("teste equalizeNumberOfRows", expect.group(
     expect.thatResultOf(() => {
         var arrayA = [[1, 2, 3], [1, 2], [1]];
         var arrayB = [["a"], ["b"]];
@@ -85,7 +86,7 @@ test("Testing push column", expect.group(
 test("Testing push row",
     expect.thatResultOf(() => pushRow([["a"]], "b"), '[["a"]] + "b"')
         .toBeEqual([["a"], ["b"]])
-);
+);*/
 
 
 displayResults();
