@@ -1,12 +1,41 @@
 ------------------------------------------------------
 	teste equalizeNumbeOfColumns
 ------------------------------------------------------
-(✓)	1)Expect equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]]) to be [[1, 2, 3], [1, 2, ""], [1, "", ""]]
-(✓)	2)With arrayA = [[1, 2, 3], [1, 2], [1]] and arrayB = [["a"], ["b"]]
-	by calling equalizeNumberOfColumns(arrayA, arrayB)
-	Expect arrayB to be [["a", "", ""], ["b", "", ""]]
+(✓)	1)Expect equalizeNumbeOfColumns([[1, 2, 3], [1, 2], [1]]) to be equal to [[1, 2, 3], [1, 2, ""], [1, "", ""]]
+(✓)	2)Expect () => {
+        var arrayA = [[1, 2, 3], [1, 2], [1]];
+        var arrayB = [["a"], ["b"]];
+        equalizeNumberOfColumns(arrayA, arrayB);
+        return [arrayA, arrayB];
+    } to be equal to [[[1, 2, 3], [1, 2, ""], [1, "", ""]], [["a", "", ""], ["b", "", ""]]]
 
 Total:	2	Sucess:	2	Fails:	0	Errors:	0
+Test Pass!
+------------------------------------------------------
+	teste equalizeNumberOfRows
+------------------------------------------------------
+(✓)	1)Expect () => {
+        var arrayA = [[1, 2, 3], [1, 2], [1]];
+        var arrayB = [["a"], ["b"]];
+        equalizeNumberOfRows(arrayA, arrayB);
+        return [arrayA, arrayB];
+    } to be equal to [[[1, 2, 3], [1, 2], [1]], [["a"], ["b"], [""]]]
+(✓)	2)Expect 2 to be greater than 1
+
+Total:	2	Sucess:	2	Fails:	0	Errors:	0
+Test Pass!
+------------------------------------------------------
+	test equalizeNumbeOfColumns and equalizeNumberOfRows
+------------------------------------------------------
+(✓)	1)Expect () => {
+        var arrayA = [[1, 2, 3], [1, 2], [1]];
+        var arrayB = [["a"], ["b"]];
+        equalizeNumberOfColumns(arrayA, arrayB);
+        equalizeNumberOfRows(arrayA, arrayB);
+        return [arrayA, arrayB];
+    } to be equal to [[[1, 2, 3], [1, 2, ""], [1, "", ""]], [["a", "", ""], ["b", "", ""], ["", "", ""]]]
+
+Total:	1	Sucess:	1	Fails:	0	Errors:	0
 Test Pass!
 ------------------------------------------------------
 
@@ -14,4 +43,4 @@ Test Pass!
 ------------------------------------------------------
 				FINAL RESULTS
 ------------------------------------------------------
-Total:	1	Sucess:	1	Fails:	0	Errors:	0
+Total:	3	Sucess:	3	Fails:	0	Errors:	0

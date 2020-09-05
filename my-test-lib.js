@@ -394,8 +394,8 @@ class MustBeAssertion extends Assertion {
         if (!parameters instanceof MustBeAssertionParameters) throw new Error("valueParameters must be instance of " + MustBeAssertionParameters.name);
         this.parameters = parameters;
         this.cmpDescription = cmpDescription;
-        super.description = '{aliasValueA}{aliasMapValueA} to be {aliasValueB}{aliasMapValueB}';
-        super.failMsg = '{aliasValueA}{aliasMapValueA} is {valueAFinal} not {valueBFinal} as expected';
+        super.description = `{aliasValueA}{aliasMapValueA} to be ${cmpDescription} {aliasValueB}{aliasMapValueB}`;
+        super.failMsg = `{aliasValueA}{aliasMapValueA} is {valueAFinal} not ${cmpDescription} {valueBFinal} as expected`;
     }
 
     _format_(text) {

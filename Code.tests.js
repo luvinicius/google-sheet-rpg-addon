@@ -12,7 +12,7 @@ const expect = require("./my-test-lib").expect;
 const displayResults = require("./my-test-lib").displayResults;
 const saveLog = require("./my-test-lib").saveLog;
 
-let equalizeNumbeOfColumns = test("teste equalizeNumbeOfColumns", expect.group(
+let testEqualizeNumberOfColumns = test("teste equalizeNumbeOfColumns", expect.group(
     expect.thatResultOf(() => {
         var arrayA = [[1, 2, 3], [1, 2], [1]];
         equalizeNumberOfColumns(arrayA);
@@ -25,14 +25,14 @@ let equalizeNumbeOfColumns = test("teste equalizeNumbeOfColumns", expect.group(
         var arrayB = [["a"], ["b"]];
         equalizeNumberOfColumns(arrayA, arrayB);
         return [arrayA, arrayB];
-    }, "")
-        .index(0, "arrayA").toBeEqual([[1, 2, 3], [1, 2, ""], [1, "", ""]])
+    }).toBeEqual([[[1, 2, 3], [1, 2, ""], [1, "", ""]],[["a", "", ""], ["b", "", ""]]])
+        /*.index(0, "arrayA").toBeEqual([[1, 2, 3], [1, 2, ""], [1, "", ""]])
         .and
         .index(1, "arrayB").toBeEqual([["a", "", ""], ["b", "", ""]])
-        .setTitle('With arrayA = [[1, 2, 3], [1, 2], [1]] and arrayB = [["a"], ["b"]]\n\tby calling equalizeNumberOfColumns(arrayA, arrayB)')
+        .setTitle('With arrayA = [[1, 2, 3], [1, 2], [1]] and arrayB = [["a"], ["b"]]\n\tby calling equalizeNumberOfColumns(arrayA, arrayB)')*/
 
 ));
-/*let equalizeNumberOfRows = test("teste equalizeNumberOfRows", expect.group(
+let testEqualizeNumberOfRows = test("teste equalizeNumberOfRows", expect.group(
     expect.thatResultOf(() => {
         var arrayA = [[1, 2, 3], [1, 2], [1]];
         var arrayB = [["a"], ["b"]];
@@ -53,9 +53,9 @@ test("test equalizeNumbeOfColumns and equalizeNumberOfRows", expect.group(
     }).toBeEqual([[[1, 2, 3], [1, 2, ""], [1, "", ""]],
     [["a", "", ""], ["b", "", ""], ["", "", ""]]])
 
-));
+),testEqualizeNumberOfColumns,testEqualizeNumberOfRows);
 
-test("Testing push column", expect.group(
+/*test("Testing push column", expect.group(
     expect.thatResultOf(() => pushColumn([["a"]], "b"), '[["a"]] + "b"')
         .toBeEqual([["a", "b"]]),
     expect.thatResultOf(() => pushColumn([["a"]], ["b"]), '[["a"]]+ ["b"]')
