@@ -48,7 +48,18 @@ function isEmpty_(value) {
         return false;
     }
 }
-
+/**
+ * Default builder
+ * default_(defaultValue)<br/>
+ *  for_(value, treatment)<br/>
+ *    if_(...functions)<br/>
+ *    ifIsEmpty()<br/>
+ *    ifIsEmptyOr_(...functions)
+ * The treament is optional and, if informed, should be a function to transform value if it is not empty.<br/>
+ * The functions must be one or more function to test if values is valid, 
+ * if returns false, the final return of default_ must be the defaultValue
+ * @param {Object} defaultValue 
+ */
 function default_(defaultValue) {
     return {
         for_: function (value, treatment) {
@@ -120,8 +131,8 @@ function toString_(value) { return typeof value.toString === "function" ? value.
 
 /**
 * Remove empty rows from a array
+* @returns The same list without the blank lines
 * @param {Array<object>|Array<Array<object>>} values An array of values or array of array (lines and columns)
-* @return The same list without the blank lines
 * @customfunction
 */
 function REMOVE_EMPTYROWS(values) {
@@ -133,8 +144,8 @@ function REMOVE_EMPTYROWS(values) {
 
 /**
 * Remove empty columns from a two dimensional array
+* @returns The same array without empty columns
 * @param {Array<Array<object>>} values Must be a two dimensional array
-* @return The same array without empty columns
 * @customfunction
 */
 function REMOVE_EMPTYCOLUMNS(values) {
@@ -147,11 +158,11 @@ function REMOVE_EMPTYCOLUMNS(values) {
 
 /**
 * Remove rows from a two dimensional array with the specified column is empty
+* @returns The same list without the removed lines 
 * @param {number|Array<number>} column Must be a index number that represent the columns index which must be checked for empty values.
 * Start in 0 position.
 * Can be a list of columns index, in that case will remove the line if one of the column is empty.
 * @param {Array<Array<object>>} values Must be a two dimensional array
-* @return The same list without the removed lines 
 * @customfunction
 */
 function REMOVEROWS_WITH_EMPTYCOLUMN(column, values) {
@@ -178,8 +189,8 @@ function REMOVEROWS_WITH_EMPTYCOLUMN(column, values) {
 
 /**
 * Turn a tow dimensional array into a list
+* @returns An array list where the items of values with a sub lists as value will be concatenated as root items from the new array. 
 * @param {Array<object>|Array<Array<object>>} array Must be a list or tow dimensional array
-* @return An array list where the items of values with a sub lists as value will be concatenated as root items from the new array. 
 * @customfunction
 */
 function FLATARRAY(array) {
@@ -196,8 +207,8 @@ function FLATARRAY(array) {
 
 /**
 *Switch the columns by the rows
+*@returns A two dimensional array which one the lines will be the columns of values and the columns will be the lines.
 *@param {Array<Array<object>>} values Must be a two dimensional array
-*@return A two dimensional array which one the lines will be the columns of values and the columns will be the lines.
 *@customfunction
 */
 function FLIP_TABLE(values) {
@@ -265,6 +276,7 @@ function REGEXEXTRACTALL(text, regular_expression, delimiter) {
 
 /**
 * Filter rows of a two dimensional array whose the specified column is equal the specified value
+* @returns The filtered list
 * @param {number|Array<number>} column Must be a index number that represent the columns index which must be checked if it value is equal to specified value.
 * Start in 0 position.
 * Can be a list of columns index.
@@ -272,7 +284,6 @@ function REGEXEXTRACTALL(text, regular_expression, delimiter) {
 * If you want to search one specific value in more than one column, inform a list of column and only one value.
 * But if you want to search a specific values for wich column, must the inform a list of values with the same size from the list of column.
 * @param {Array<Array<object>>} values Must be a two dimensional array
-* @return The filtered list
 * @customfunction
 */
 function FILTERROWS_COLUMNEQUAL(column, value, values) {
@@ -300,7 +311,7 @@ function FILTERROWS_COLUMNEQUAL(column, value, values) {
 
 /**
 * Filter lines of a two dimensional array whose the specified column value match the specified patttern
-* @return The filtered list
+* @returns The filtered list
 * @param {number|Array<number>} column Must be a index number that represent the columns index which must be checked if it value match pattern.
 * Start in 0 position.
 * Can be a list of columns index.
@@ -423,7 +434,7 @@ function ISBETWEEN(value, begin, end) {
 
 /**
 *Checks if value is one of choices.
-*@return Will return TRUE if it's or FALSE otherwise.
+*@returns Will return TRUE if it's or FALSE otherwise.
 *@param {Object} value value to be tested
 *@param {Object} validValues,... A potential valid value. May be a reference to a cell or an individual value.
 *@customfunction
@@ -434,10 +445,12 @@ function ISONEOF(value, ...validValues) {
 }
 
 /**
-*@param
-*@param
-*@customfunction
-*/
+ * @returns
+ * @param {*} text 
+ * @param {*} keys_config 
+ * @param {*} range 
+ * @param {*} applyModifiers 
+ */
 function LOOKUPFORKEYSANDREPLACETHEYINTEXT(text, keys_config, range, applyModifiers) {
     if (isSafe2DArray_(keys_config)) {
         var pattern = keys_config.reduce(function (total, currentValue, index, arr) { return total + (index > 0 ? '|' : '') + currentValue[0] }, '(') + ')';
@@ -541,27 +554,29 @@ function pushColumn_(arrayA, arrayB) {
 
 /**
  * Make the both array have the same number of columns
- * @param {Array<Array<*>>} arrayA one or more array to equalize number os columns
+ * @param {Array<Array<*>>} arrayA array to equalize number os columns
+ * @param {Array<Array<*>> =} arrayB [optional] second array to equalize number os columns
  */
 function equalizeNumberOfColumns_(arrayA, arrayB) {
     arrayA = to2DArray_(arrayA);
-    if (arrayB) arrayB = to2DArray_(arrayB);
-    nColumns = arrayA.reduce(_to_max_length_, 0);
-    if (arrayB) nColumns = arrayB.reduce(_to_max_length_, nColumns);
+    var nColumns = arrayA.reduce(_to_max_length_, 0);
+
+    if (!isEmpty_(arrayB)){
+        arrayB = to2DArray_(arrayB);
+        nColumns = arrayB.reduce(_to_max_length_, nColumns);
+    }
 
     for (var i = 0; i < arrayA.length; i++) {
         while (arrayA[i].length < nColumns) {
             arrayA[i].push("");
         }
     }
-    if (arrayB) {
+    if (!isEmpty_(arrayB)){
         for (var i = 0; i < arrayB.length; i++) {
             while (arrayB[i].length < nColumns) {
                 arrayB[i].push("");
             }
         }
-    }
-    if (arrayB) {
         return [arrayA, arrayB];
     } else return arrayA;
 }
@@ -632,7 +647,7 @@ function equalizeNumberOfRows_(arrayA, arrayB) {
  * @param {object|Array<object>|Array<Array<object>>} arrayB second array, if it's not will become one
  */
 function pushRow_(arrayA, arrayB) {
-    [arrayA, arrayB] = equalizeNumberOfColumns_(arrayA, arrayB);
+    [arrayA, arrayB] = equalizeNumberOfColumns_(arrayA, arrayB); 
     return [].concat(arrayA).concat(arrayB);
 }
 
@@ -839,7 +854,7 @@ var REGEX_DICE_COMMAND = /(([\+\-]?)([1-9][0-9]*)?([dD][1-9][0-9]*)|([\+\-])([1-
 
 /**
 * Calculate a dice roll operation. Accepts sum and subtraction operation
-*@return An Array where the first position is the final result
+*@returns An Array where the first position is the final result
 *@param {string} command Example 1D6+4
 *@customfunction
 */

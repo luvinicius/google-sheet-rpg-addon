@@ -1,5 +1,3 @@
-const { type } = require('os');
-
 var Logger = {
     text: "",
     stringfy: function (val, cottedString) {
@@ -12,7 +10,18 @@ var Logger = {
         } else if (cottedString === true && typeof val === "string") {
             return '"' + val + '"'
         } else if (typeof val.toString == "function") {
-            return val.toString();
+            let str = val.toString();
+            if(typeof val == "function"){
+                if(str.match(/(function[ \s\t]*\(\)[ \s\t]*\{|\([^\)]*?\)[ \s\t]*\=\>[ \s\t]*\{)/)){
+                    str = str.replace(/\n?[ \s\t]*\}$/,"");
+                }
+                str = str.replace(/function[ \s\t]*\(\)[ \s\t]*\{(\n[ \s\t]*)?[ \s\t]*(return)?/,"");
+                //str = str.replace(/function[ \s\t]*\([^\)]*?\)(\n[ \s\t]*)?\{(\n[ \s\t]*)?(return)?/,"");
+                str = str.replace(/\([^\)]*?\)[ \s\t]*\=\>[ \s\t]*\{?(\n[ \s\t]*)?(return)?/,"");
+                str = str.replace(/^[ \s\t]*/,"");
+                str = str.replace(/;[ \s\t]*$/,"");
+            }
+            return str;
         } else {
             return typeof val;
         }
