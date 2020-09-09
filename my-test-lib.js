@@ -232,7 +232,7 @@ var expect = {
     value: function (value, aliasValue) {
         return new AssertationBuilder().value(value, aliasValue);
     },
-    thatResultOf: function (functionForValue, aliasValue) {
+    resultOf: function (functionForValue, aliasValue) {
         return new AssertationBuilder().resultOf(functionForValue, aliasValue);
     },
     group: agroup,

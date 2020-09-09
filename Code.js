@@ -527,8 +527,9 @@ function safeAppend_(array, value, concatBySide) {
  * @param {object|Array<object>|Array<Array<object>>} arrayB second array, if it's not will become one
  */
 function pushColumn_(arrayA, arrayB) {
-    equalizeNumberOfColumns_(arrayA, arrayB);
-    equalizeNumberOfRows_(arrayA, arrayB);
+    arrayA = equalizeNumberOfColumns_(arrayA);
+    arrayB = equalizeNumberOfColumns_(arrayB);
+    [arrayA, arrayB] = equalizeNumberOfRows_(arrayA, arrayB);
 
     var newArray = [];
     for (var i = 0; i < arrayA.length; i++) {
@@ -543,8 +544,8 @@ function pushColumn_(arrayA, arrayB) {
  * @param {Array<Array<*>>} arrayA one or more array to equalize number os columns
  */
 function equalizeNumberOfColumns_(arrayA, arrayB) {
-    arrayA = to2DArray(arrayA);
-    if (arrayB) arrayB = to2DArray(arrayB);
+    arrayA = to2DArray_(arrayA);
+    if (arrayB) arrayB = to2DArray_(arrayB);
     nColumns = arrayA.reduce(_to_max_length_, 0);
     if (arrayB) nColumns = arrayB.reduce(_to_max_length_, nColumns);
 
@@ -560,13 +561,16 @@ function equalizeNumberOfColumns_(arrayA, arrayB) {
             }
         }
     }
+    if (arrayB) {
+        return [arrayA, arrayB];
+    } else return arrayA;
 }
 
 /**
  * Tranform the object into a two dimentional array
  * @param {*} array 
  */
-function to2DArray(array) {
+function to2DArray_(array) {
     if (!is2DArray_(array)) {
         if (Array.isArray(array)) {
             return array.map(function (value) { return [value] });
@@ -597,8 +601,8 @@ var _to_max_length_ = function (previus, current) {
  * @param {Array<<*>>} arrayB 
  */
 function equalizeNumberOfRows_(arrayA, arrayB) {
-    arrayA = to2DArray(arrayA);
-    arrayB = to2DArray(arrayB);
+    arrayA = to2DArray_(arrayA);
+    arrayB = to2DArray_(arrayB);
     if (arrayA.length != arrayB.length) {
         var nColumnsA = arrayA.reduce(_to_max_length_, 0);
         var nColumnsB = arrayB.reduce(_to_max_length_, 0);
@@ -617,6 +621,7 @@ function equalizeNumberOfRows_(arrayA, arrayB) {
                 arrayA.push(row);
             }
     }
+    return [arrayA, arrayB];
 }
 
 
@@ -627,15 +632,8 @@ function equalizeNumberOfRows_(arrayA, arrayB) {
  * @param {object|Array<object>|Array<Array<object>>} arrayB second array, if it's not will become one
  */
 function pushRow_(arrayA, arrayB) {
-    equalizeNumberOfColumns_(arrayA, arrayB);
-
-    var newArray = [];
-    for (var i = 0; i < arrayA.length; i++) {
-        newArray.push([].concat(arrayA[i]).concat(arrayB[i]));
-    }
-
-    return newArray;
-
+    [arrayA, arrayB] = equalizeNumberOfColumns_(arrayA, arrayB);
+    return [].concat(arrayA).concat(arrayB);
 }
 
 
@@ -1294,6 +1292,7 @@ function commit() {
 
 
 module.exports = {
+    to2DArray: to2DArray_,
     safeAppend: safeAppend_,
     pushColumn: pushColumn_,
     pushRow: pushRow_,
