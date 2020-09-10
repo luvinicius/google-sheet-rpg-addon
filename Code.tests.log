@@ -14,7 +14,7 @@ Test Pass!
 (✓)	1)Expect equalizeNumberOfColumns([[1, 2, 3], [1, 2], [1]]) to be equal to [[1, 2, 3], [1, 2, ""], [1, "", ""]]
 (✓)	2)Expect equalizeNumberOfColumns([[1, 2, 3], [1, 2], [1]], [["a"], ["b"]]) to be equal to [[[1, 2, 3], [1, 2, ""], [1, "", ""]], [["a", "", ""], ["b", "", ""]]]
 (✓)	3)Expect return equalizeNumberOfColumns([["a"], [0], [1]], "b") to be equal to [[["a"], [0], [1]], [["b"]]]
-(✓)	4)Expect return equalizeNumberOfColumns([["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e"]]) to be equal to [[["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e", ""]]]
+(✓)	4)Expect equalizeNumberOfColumns([["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e"]]) to be equal to [[["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e", ""]]]
 (✓)	5)Expect equalizeNumberOfColumns([["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e"], [0], [1]]) to be equal to [[["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e", ""], [0, "", ""], [1, "", ""]]]
 (✓)	6)Expect equalizeNumberOfColumns([["a"]], "b") to be equal to [[["a"]], [["b"]]]
 (✓)	7)Expect equalizeNumberOfColumns("a", [["b", 0, 1]]) to be equal to [[["a", "", ""]], [["b", 0, 1]]]
@@ -74,9 +74,68 @@ Test Pass!
 Total:	5	Sucess:	5	Fails:	0	Errors:	0
 Test Pass!
 ------------------------------------------------------
+	Testing safe Append
+------------------------------------------------------
+(✓)	1)Expect safeAppend("a", "b") to be equal to [["a"], ["b"]]
+(✓)	2)Expect safeAppend([["a"], ["b"]], "c") to be equal to [["a"], ["b"], ["c"]]
+(✓)	3)Expect safeAppend([["a"], ["b"]], [["c"], ["d"], ["e"]]) to be equal to [["a"], ["b"], ["c"], ["d"], ["e"]]
+(✓)	4)Expect safeAppend("a", [["b", "c"]]) to be equal to [["a", ""], ["b", "c"]]
+(✓)	5)Expect safeAppend("a", "b", true) to be equal to [["a", "b"]]
+(✓)	6)Expect safeAppend([["a"], ["b"]], "c", true) to be equal to [["a", "c"], ["b", ""]]
+(✓)	7)Expect safeAppend([["a"], ["b"]], [["c"], ["d"], ["e"]], true) to be equal to [["a", "c"], ["b", "d"], ["", "e"]]
+(✓)	8)Expect safeAppend("a", [["b", "c"]], true) to be equal to [["a", "b", "c"]]
+
+Total:	8	Sucess:	8	Fails:	0	Errors:	0
+Test Pass!
+------------------------------------------------------
+	Testing OFFSETLOOKUP
+------------------------------------------------------
+(✓)	1)Expect OFFSETLOOKUP("A", range1, 0, 1) to be equal to 10
+(✓)	2)Expect OFFSETLOOKUP("B", range1, 0, 2) to be equal to 55
+(✓)	3)Expect OFFSETLOOKUP("C", range1, 0, 3) to be equal to 99
+(✓)	4)Expect OFFSETLOOKUP("D", range1, 0, 1, 1, 3) to be equal to [[13, 3, 3]]
+(✓)	5)Expect OFFSETLOOKUP("Header1", range1, 1, 0, 1, 1) to be equal to Value1
+(✓)	6)Expect OFFSETLOOKUP("Header2", range1, 1, 0, 1, 1) to be equal to Value2
+(✓)	7)Expect OFFSETLOOKUP("Lista B", range1, 1, 0, 9, 0) to be equal to [["Item B.A"], ["Item B.B"], ["Item B.C"], ["Item B.D"], ["Item B.E"], ["Item B.F"], ["Item B.G"], ["Item B.H"], ["Item B.I"]]
+(✓)	8)Expect OFFSETLOOKUP("Lista A", range1, 1, 0, -1, 2) to be equal to [["Item A.A", 0], ["Item A.B", 1], ["Item A.C", 2], ["Item A.D", 3], ["Item A.E", 4]]
+(✓)	9)Expect OFFSETLOOKUP("A", range1, 0, 1, 1, 1, "LAST") to be equal to 66
+(✗)	10)Expect OFFSETLOOKUP("A", range1, 0, 1, 1, 1, "ALL") to be equal to 66
+Not find key A in range
+Error: Not find key A in range
+    at OFFSETLOOKUP (/home/link/Oficina/vscode/google-sheet-rpg-addon/Code.js:705:15)
+    at MustBeEqualAssertion.expect.group.expect.resultOf (/home/link/Oficina/vscode/google-sheet-rpg-addon/Code.tests.js:307:25)
+    at MustBeEqualAssertion.get valueAFinal [as valueAFinal] (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:465:69)
+    at MustBeEqualAssertion.test (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:435:30)
+    at MustBeEqualAssertion.get true [as true] (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:272:58)
+    at TestAssertion.test (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:104:34)
+    at TestAssertion.get true [as true] (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:272:58)
+    at /home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:61:34
+    at tests.forEach (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:625:38)
+    at Array.forEach (<anonymous>)
+(✗)	11)Expect OFFSETLOOKUP("A", range1, 0, 1, 1, 3, "ALL") to be equal to 66,33,22
+Not find key A in range
+Error: Not find key A in range
+    at OFFSETLOOKUP (/home/link/Oficina/vscode/google-sheet-rpg-addon/Code.js:705:15)
+    at MustBeEqualAssertion.expect.group.expect.resultOf (/home/link/Oficina/vscode/google-sheet-rpg-addon/Code.tests.js:310:25)
+    at MustBeEqualAssertion.get valueAFinal [as valueAFinal] (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:465:69)
+    at MustBeEqualAssertion.test (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:435:30)
+    at MustBeEqualAssertion.get true [as true] (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:272:58)
+    at TestAssertion.test (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:104:34)
+    at TestAssertion.get true [as true] (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:272:58)
+    at /home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:61:34
+    at tests.forEach (/home/link/Oficina/vscode/google-sheet-rpg-addon/my-test-lib.js:625:38)
+    at Array.forEach (<anonymous>)
+(✗)	12)Expect LAST to be equal to [["Item Z.1"], ["Item Z.2"]]
+	LAST is [["Item A.A"], ["Item A.B"], ["Item A.C"], ["Item A.D"], ["Item A.E"], ["A"]] not equal to [["Item Z.1"], ["Item Z.2"]] as expected
+(✗)	13)Expect ALL to be equal to [["Item A.A"], ["Item A.B"], ["Item A.C"], ["Item A.D"], ["Item A.E"], ["A"], ["Item Z.1"], ["Item Z.2"]]
+	ALL is [["Item A.A"], ["Item A.B"], ["Item A.C"], ["Item A.D"], ["Item A.E"], ["A"]] not equal to [["Item A.A"], ["Item A.B"], ["Item A.C"], ["Item A.D"], ["Item A.E"], ["A"], ["Item Z.1"], ["Item Z.2"]] as expected
+
+Total:	13	Sucess:	9	Fails:	2	Errors:	2
+Test Fail!
+------------------------------------------------------
 
 
 ------------------------------------------------------
 				FINAL RESULTS
 ------------------------------------------------------
-Total:	6	Sucess:	6	Fails:	0	Errors:	0
+Total:	8	Sucess:	7	Fails:	1	Errors:	0

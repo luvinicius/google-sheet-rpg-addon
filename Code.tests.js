@@ -6,6 +6,12 @@ const pushColumn = require('./Code.js').pushColumn;
 const pushRow = require('./Code.js').pushRow;
 const safeAppend = require('./Code.js').safeAppend;
 
+const OFFSETLOOKUP = require('./Code.js').OFFSETLOOKUP;
+const LOOKUPFORKEY = require('./Code.js').LOOKUPFORKEY;
+const LOOKUPFORKEYSANDREPLACETHEYINTEXT = require('./Code.js').LOOKUPFORKEYSANDREPLACETHEYINTEXT;
+const REPLACEKEYSFORVALUESSINLOOKUPRANGE = require('./Code.js').REPLACEKEYSFORVALUESSINLOOKUPRANGE;
+const APPLYMODIFIERS = require('./Code.js').APPLYMODIFIERS;
+
 const SPLIT2D = require('./Code.js').SPLIT2D;
 
 const test = require("./my-test-lib").test;
@@ -220,9 +226,97 @@ test("Testing push row", expect.group(
     expect
         .resultOf(() => pushRow(["a", 0, 1], "b"))
         .toBeEqual([["a"], [0], [1], ["b"]])
-)
-);
+));
 
+test("Testing safe Append", expect.group(
+    expect
+        .resultOf(() => safeAppend("a", "b"))
+        .toBeEqual([["a"], ["b"]]),
+    expect
+        .resultOf(() => safeAppend([["a"], ["b"]], "c"))
+        .toBeEqual([["a"], ["b"], ["c"]]),
+    expect
+        .resultOf(() => safeAppend([["a"], ["b"]], [["c"], ["d"], ["e"]]))
+        .toBeEqual([["a"], ["b"], ["c"], ["d"], ["e"]]),
+    expect
+        .resultOf(() => safeAppend("a", [["b", "c"]]))
+        .toBeEqual([["a", ""], ["b", "c"]]),
+    expect
+        .resultOf(() => safeAppend("a", "b", true))
+        .toBeEqual([["a", "b"]]),
+    expect
+        .resultOf(() => safeAppend([["a"], ["b"]], "c", true))
+        .toBeEqual([["a", "c"], ["b", ""]]),
+    expect
+        .resultOf(() => safeAppend([["a"], ["b"]], [["c"], ["d"], ["e"]], true))
+        .toBeEqual([["a", "c"], ["b", "d"], ["", "e"]]),
+    expect
+        .resultOf(() => safeAppend("a", [["b", "c"]], true))
+        .toBeEqual([["a", "b", "c"]]),
+));
+
+var range1 = [
+    ["Header1", "", "Header2", "Header3", ""],
+    ["Value1", "", "Value2", "Value3", ""],
+    ["A", 10, 0, 0, "Lista B"],
+    ["B", 11, 55, 1, "Item B.A"],
+    ["C", 12, 2, 99, "Item B.B"],
+    ["D", 13, 3, 3, "Item B.C"],
+    ["E", 14, 4, 4, "Item B.D"],
+    ["F", 15, 5, 5, "Item B.E"],
+    ["Lista A", "pts", "", "", "Item B.F"],
+    ["Item A.A", 0, "", "", "Item B.G"],
+    ["Item A.B", 1, "", "", "Item B.H"],
+    ["Item A.C", 2, "", "", "Item B.I"],
+    ["Item A.D", 3, "", "", "Lista A"],
+    ["Item A.E", 4, "", "", "Item Z.1"],
+    ["A", 66, 33, 22, "Item Z.2"],
+];
+
+var range2 = [["Value1", "Value2", "Value3", 0, 1, 2, 3, 4, 5, "Item A.A,Item A.B,Item A.C,Item A.D,Item A.E", "0,1,2,3,4"]]
+
+test("Testing OFFSETLOOKUP", expect.group(
+    expect
+        .resultOf(() => OFFSETLOOKUP("A", range1, 0, 1))
+        .toBeEqual(10),
+    expect
+        .resultOf(() => OFFSETLOOKUP("B", range1, 0, 2))
+        .toBeEqual(55),
+    expect
+        .resultOf(() => OFFSETLOOKUP("C", range1, 0, 3))
+        .toBeEqual(99),
+    expect
+        .resultOf(() => OFFSETLOOKUP("D", range1, 0, 1, 1, 3))
+        .toBeEqual([[13, 3, 3]]),
+    expect
+        .resultOf(() => OFFSETLOOKUP("Header1", range1, 1, 0, 1, 1))
+        .toBeEqual("Value1"),
+    expect
+        .resultOf(() => OFFSETLOOKUP("Header2", range1, 1, 0, 1, 1))
+        .toBeEqual("Value2"),
+    expect
+        .resultOf(() => OFFSETLOOKUP("Lista B", range1, 1, 0, 9, 0))
+        .toBeEqual([["Item B.A"], ["Item B.B"], ["Item B.C"], ["Item B.D"], ["Item B.E"], ["Item B.F"], ["Item B.G"], ["Item B.H"], ["Item B.I"]]),
+    expect
+        .resultOf(() => OFFSETLOOKUP("Lista A", range1, 1, 0, -1, 2))
+        .toBeEqual([["Item A.A", 0], ["Item A.B", 1], ["Item A.C", 2], ["Item A.D", 3], ["Item A.E", 4]]),
+    expect
+        .resultOf(() => OFFSETLOOKUP("A", range1, 0, 1, 1, 1, "LAST"))
+        .toBeEqual(66),
+    expect
+        .resultOf(() => OFFSETLOOKUP("A", range1, 0, 1, 1, 1, "ALL"))
+        .toBeEqual([10], [66]),
+    expect
+        .resultOf(() => OFFSETLOOKUP("A", range1, 0, 1, 1, 3, "ALL"))
+        .toBeEqual([10, 0, 0], [66, 33, 22]),
+    expect
+        .resultOf(() => OFFSETLOOKUP("Lista A", range1, 1, 0, 0), "LAST")
+        .toBeEqual([["Item Z.1"], ["Item Z.2"]]),
+    expect
+        .resultOf(() => OFFSETLOOKUP("Lista A", range1, 1, 0, 0, 1), "ALL")
+        .toBeEqual([["Item A.A"], ["Item A.B"], ["Item A.C"], ["Item A.D"], ["Item A.E"],["A"], ["Item Z.1"], ["Item Z.2"]]),
+
+));
 
 displayResults();
 saveLog("Code.tests");

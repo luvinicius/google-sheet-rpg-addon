@@ -49,16 +49,10 @@ function isEmpty_(value) {
     }
 }
 /**
- * Default builder
- * default_(defaultValue)<br/>
- *  for_(value, treatment)<br/>
- *    if_(...functions)<br/>
- *    ifIsEmpty()<br/>
- *    ifIsEmptyOr_(...functions)
- * The treament is optional and, if informed, should be a function to transform value if it is not empty.<br/>
- * The functions must be one or more function to test if values is valid, 
- * if returns false, the final return of default_ must be the defaultValue
- * @param {Object} defaultValue 
+ * Default value builder
+ * The treament is optional and, if informed, should be a function to transform value if it is not empty.
+ * The functions must be one or more function to test if values is valid, if returns false, the final return of default_ must be the defaultValue
+ * @param {Object} defaultValue default value to be returned if value for not meet the validations
  */
 function default_(defaultValue) {
     return {
@@ -479,7 +473,7 @@ function LOOKUPFORKEY(search_key, keys_config, data, concatBySide) {
     if (!isSafe2DArray_(keys_config) && keys_config.every(withPropertyBetween_("length", 2, 5))) throw new Error("keysconfig Must be a dataset with one row for each valid key and for each row must have columns by key name, index or offset_row, offset column [optional], height [optional], width [optional]");
     concatBySide = default_(false).for_(concatBySide).ifIsEmptyOr_(not_(typeOf_("boolean")));
 
-    keys_config.sort(function (a, b) { return a[0].length - b[0].length });
+    keys_config.sort(function (a, b){ return a[0].length - b[0].length });
     var keys = keys_config.map(function (keyCondig) { return keyCondig[0]; });
 
 
@@ -489,7 +483,9 @@ function LOOKUPFORKEY(search_key, keys_config, data, concatBySide) {
         var dataToReturn = [];
         for (i in search_key) {
             var row = LOOKUPFORKEY(search_key[i], keys_config, data);
-            if (row) { safeAppend_(dataToReturn, row, concatBySide); }
+            if (row) {
+                dataToReturn = safeAppend_(dataToReturn, row, concatBySide);
+            }
         }
         if (not_(isEmpty_(dataToReturn))) return dataToReturn;
     } else if (keys.includes(search_key)) {
@@ -507,32 +503,22 @@ function LOOKUPFORKEY(search_key, keys_config, data, concatBySide) {
     return undefined;
 }
 
-function safeAppend_(array, value, concatBySide) {
-    if (Array.isArray(value)) {
-        if (array.some(function (item) { return Array.isArray(item); })) {
-
-            // TODO
-        } else if (array.some(function (item) { return !Array.isArray(item); })) {
-            // TODO
-        } else {
-            if (concatBySide === true) {
-                // concatBySide_(array, value);
-            } else {
-                array.concat(value);
-            }
-        }
+/**
+ * Join two values to build a safe two dimensional
+ * @returns Return a safe two dimensional array with the values of array plus value
+ * @param {Object|Array<Object>|Array<Array<Object>>} valueA An array or object to be append another value
+ * @param {Object|Array<Object>|Array<Array<Object>>} valueB An array or object to be append another value
+ * @param {boolean=false} concatBySide Is true will put valueB as a new column of valueA
+ */
+function safeAppend_(valueA, valueB, concatBySide) {
+    concatBySide = default_(false).for_(concatBySide).ifIsEmpty();
+    if (concatBySide === true) {
+        return pushColumn_(valueA, valueB);
     } else {
-        if (array.some(function (item) { return Array.isArray(item); })) {
-            // TODO
-        } else {
-            if (concatBySide == true) {
-                array[0] = [array[0], value];
-            } else {
-                array.push(value);
-            }
-        }
+        return pushRow_(valueA, valueB);
     }
 }
+
 /**
  * Put the two arrays side by side in a new tow dimensional array, with the same numbers of rows.
  * @returns will allways return a safe two dimensional. 
@@ -561,7 +547,7 @@ function equalizeNumberOfColumns_(arrayA, arrayB) {
     arrayA = to2DArray_(arrayA);
     var nColumns = arrayA.reduce(_to_max_length_, 0);
 
-    if (!isEmpty_(arrayB)){
+    if (!isEmpty_(arrayB)) {
         arrayB = to2DArray_(arrayB);
         nColumns = arrayB.reduce(_to_max_length_, nColumns);
     }
@@ -571,7 +557,7 @@ function equalizeNumberOfColumns_(arrayA, arrayB) {
             arrayA[i].push("");
         }
     }
-    if (!isEmpty_(arrayB)){
+    if (!isEmpty_(arrayB)) {
         for (var i = 0; i < arrayB.length; i++) {
             while (arrayB[i].length < nColumns) {
                 arrayB[i].push("");
@@ -647,7 +633,7 @@ function equalizeNumberOfRows_(arrayA, arrayB) {
  * @param {object|Array<object>|Array<Array<object>>} arrayB second array, if it's not will become one
  */
 function pushRow_(arrayA, arrayB) {
-    [arrayA, arrayB] = equalizeNumberOfColumns_(arrayA, arrayB); 
+    [arrayA, arrayB] = equalizeNumberOfColumns_(arrayA, arrayB);
     return [].concat(arrayA).concat(arrayB);
 }
 
@@ -1313,6 +1299,18 @@ module.exports = {
     pushRow: pushRow_,
     equalizeNumberOfColumns: equalizeNumberOfColumns_,
     equalizeNumberOfRows: equalizeNumberOfRows_,
+    getPositionOfficet:getPositionOfficet_,
+    OFFSETLOOKUP: OFFSETLOOKUP,
+    LOOKUPFORKEY: LOOKUPFORKEY,
+    LOOKUPFORKEYSANDREPLACETHEYINTEXT: LOOKUPFORKEYSANDREPLACETHEYINTEXT,
+    REPLACEKEYSFORVALUESSINLOOKUPRANGE: REPLACEKEYSFORVALUESSINLOOKUPRANGE,
+
+    APPLYMODIFIERS: APPLYMODIFIERS,
+
+    EXTRACTDICES: EXTRACTDICES,
+    REPLACEDICECOMMANDFORKEYS: REPLACEDICECOMMANDFORKEYS,
+    CALCDISCEROLLOP: CALCDISCEROLLOP,
+
     REMOVE_EMPTYROWS: REMOVE_EMPTYROWS,
     REMOVE_EMPTYCOLUMNS: REMOVE_EMPTYCOLUMNS,
     REMOVEROWS_WITH_EMPTYCOLUMN: REMOVEROWS_WITH_EMPTYCOLUMN,
@@ -1326,17 +1324,13 @@ module.exports = {
     SWITCHBETWEEN: SWITCHBETWEEN,
     ISBETWEEN: ISBETWEEN,
     ISONEOF: ISONEOF,
-    LOOKUPFORKEYSANDREPLACETHEYINTEXT: LOOKUPFORKEYSANDREPLACETHEYINTEXT,
-    APPLYMODIFIERS: APPLYMODIFIERS,
-    LOOKUPFORKEY: LOOKUPFORKEY,
-    OFFSETLOOKUP: OFFSETLOOKUP,
+    
     FORMAT: FORMAT,
-    REPLACEKEYSFORVALUESSINLOOKUPRANGE: REPLACEKEYSFORVALUESSINLOOKUPRANGE,
+    
     DICEROLL: DICEROLL,
-    CALCDISCEROLLOP: CALCDISCEROLLOP,
-    EXTRACTDICES: EXTRACTDICES,
-    REPLACEDICECOMMANDFORKEYS: REPLACEDICECOMMANDFORKEYS,
+    
     RESOLVE_CRITERIO: RESOLVE_CRITERIO,
+
     EVALMATHINBRACKETS: EVALMATHINBRACKETS,
     EVALSIMPLEMATH: EVALSIMPLEMATH,
     EVALMATH: EVALMATH,
