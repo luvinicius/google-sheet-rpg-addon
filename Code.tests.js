@@ -80,7 +80,7 @@ let testEqualizeNumberOfColumns = test("teste equalizeNumbeOfColumns", expect.gr
             [["b", 0, 1]]
         ]),
     expect
-        .resultOf(() => equalizeNumberOfColumns(["a", 0, 1], "b"))
+        .resultOf(() => equalizeNumberOfColumns([["a", 0, 1]], "b"))
         .toBeEqual([
             [["a", 0, 1]],
             [["b", "", ""]]
@@ -128,37 +128,37 @@ let testEqualizeNumberOfRows = test("test equalizeNumberOfRows", expect.group(
 
 test("test equalizeNumbeOfColumns and equalizeNumberOfRows", expect.group(
     expect
-        .resultOf(() => equalizeNumberOfRows([[1, 2, 3], [1, 2], [1]], [["a"], ["b"]]))
+        .resultOf(() => equalizeNumberOfRows(...equalizeNumberOfColumns([[1, 2, 3], [1, 2], [1]], [["a"], ["b"]])))
         .toBeEqual([
             [[1, 2, 3], [1, 2, ""], [1, "", ""]],
             [["a", "", ""], ["b", "", ""], ["", "", ""]]
         ]),
     expect
-        .resultOf(() => equalizeNumberOfRows([["a", "e"], [0], [1]], "b"))
+        .resultOf(() => equalizeNumberOfRows(...equalizeNumberOfColumns([["a", "e"], [0], [1]], "b")))
         .toBeEqual([
             [["a", "e"], [0, ""], [1, ""]],
             [["b", ""], ["", ""], ["", ""]]
         ]),
     expect
-        .resultOf(() => equalizeNumberOfRows([["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e"]]))
+        .resultOf(() => equalizeNumberOfRows(...equalizeNumberOfColumns([["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e"]])))
         .toBeEqual([
             [["a", "b", "c"], [0, 0, 0], [1, 1, 1]],
             [["d", "e", ""], ["", "", ""], ["", "", ""]]
         ]),
     expect
-        .resultOf(() => equalizeNumberOfRows([["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e"], [0], [1]]))
+        .resultOf(() => equalizeNumberOfRows(...equalizeNumberOfColumns([["a", "b", "c"], [0, 0, 0], [1, 1, 1]], [["d", "e"], [0], [1]])))
         .toBeEqual([
             [["a", "b", "c"], [0, 0, 0], [1, 1, 1]],
             [["d", "e", ""], [0, "", ""], [1, "", ""]]
         ]),
     expect
-        .resultOf(() => equalizeNumberOfRows([["a"]], "b"))
+        .resultOf(() => equalizeNumberOfRows(...equalizeNumberOfColumns([["a"]], "b")))
         .toBeEqual([
             [["a"]],
             [["b"]]
         ]),
     expect
-        .resultOf(() => equalizeNumberOfRows([["a", "b"]], [["c", "d", "e"], [0, 0, 0], [1, 1, 1]]))
+        .resultOf(() => equalizeNumberOfRows(...equalizeNumberOfColumns([["a", "b"]], [["c", "d", "e"], [0, 0, 0], [1, 1, 1]])))
         .toBeEqual([
             [["a", "b", ""], ["", "", ""], ["", "", ""]],
             [["c", "d", "e"], [0, 0, 0], [1, 1, 1]]
@@ -206,17 +206,20 @@ test("Testing push column", expect.group(
 
 test("Testing push row", expect.group(
     expect
-        .resultOf(() => pushRow("a", "b"), '"a" + "b"')
+        .resultOf(() => pushRow("a", "b"))
         .toBeEqual([["a"], ["b"]]),
     expect
-        .resultOf(() => pushRow([["a"]], "b"), '[["a"]] + "b"')
+        .resultOf(() => pushRow([["a"]], "b"))
         .toBeEqual([["a"], ["b"]]),
     expect
-        .resultOf(() => pushRow("a", ["b"]), '"a" + "[b]"')
+        .resultOf(() => pushRow("a", ["b"]))
         .toBeEqual([["a"], ["b"]]),
     expect
-        .resultOf(() => pushRow(["a", 0, 1], "b"), '["a", 0, 1] + "b"')
-        .toBeEqual([["a", 0, 1], ["b", "", ""]])
+        .resultOf(() => pushRow([["a", 0, 1]], "b"))
+        .toBeEqual([["a", 0, 1], ["b", "", ""]]),
+    expect
+        .resultOf(() => pushRow(["a", 0, 1], "b"))
+        .toBeEqual([["a"], [0], [1], ["b"]])
 )
 );
 
