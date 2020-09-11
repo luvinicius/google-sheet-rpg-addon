@@ -11,15 +11,23 @@ var Logger = {
             return '"' + val + '"'
         } else if (typeof val.toString == "function") {
             let str = val.toString();
-            if(typeof val == "function"){
-                if(str.match(/(function[ \s\t]*\(\)[ \s\t]*\{|\([^\)]*?\)[ \s\t]*\=\>[ \s\t]*\{)/)){
-                    str = str.replace(/\n?[ \s\t]*\}$/,"");
+            if (typeof val == "function") {
+                if (str.match(/(function[ \s\t]*\(\)[ \s\t]*\{|\([^\)]*?\)[ \s\t]*\=\>[ \s\t]*\{)/)) {
+                    str = str.replace(/\n?[ \s\t]*\}$/, "");
                 }
-                str = str.replace(/function[ \s\t]*\(\)[ \s\t]*\{(\n[ \s\t]*)?[ \s\t]*(return)?/,"");
+                str = str.replace(/function[ \s\t]*\(\)[ \s\t]*\{(\n[ \s\t]*)?[ \s\t]*(return)?/, "");
                 //str = str.replace(/function[ \s\t]*\([^\)]*?\)(\n[ \s\t]*)?\{(\n[ \s\t]*)?(return)?/,"");
-                str = str.replace(/\([^\)]*?\)[ \s\t]*\=\>[ \s\t]*\{?(\n[ \s\t]*)?(return)?/,"");
-                str = str.replace(/^[ \s\t]*/,"");
-                str = str.replace(/;[ \s\t]*$/,"");
+                str = str.replace(/\([^\)]*?\)[ \s\t]*\=\>[ \s\t]*\{?(\n[ \s\t]*)?(return)?/, "");
+                str = str.replace(/^[ \s\t]*/, "");
+                str = str.replace(/;[ \s\t]*$/, "");
+            }
+            if (typeof val == "object" && str == "[object Object]") {
+                str = "{ ";
+                for (key in val) {
+                    if (str.length > 2) str += ", ";
+                    str += `${key}:${val[key]}`;
+                }
+                str += " }";
             }
             return str;
         } else {
@@ -188,12 +196,12 @@ class AssertationBuilder {
         return this.toBeEqual(undefined, aliasFunctionForValueB, functionForValueB, valueBMapper, aliasForValueBMapper);
     }
 
-    toBeTrue() {
-        return this.toBeEqual(true, "True");
+    get toBeTrue() {
+        return this.toBeEqual(true);
     }
 
-    toBeFalse() {
-        return this.toBeEqual(true, "False");
+    get toBeFalse() {
+        return this.toBeEqual(false);
     }
 
     toBeGreaterThan(valueB, aliasValueB, functionForValueB, valueBMapper, aliasForValueBMapper) {
@@ -504,6 +512,17 @@ class MustBeEqualAssertion extends MustBeAssertion {
                 && valueA.length == valueB.length) {
                 for (let i = 0; i < valueA.length; i++) {
                     if (this.cmp(valueA[i], valueB[i]) != true) {
+                        return false;
+                    }
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } else if (typeof valueA === "object") {
+            if (typeof valueB === "object") {
+                for (let key in valueA) {
+                    if (this.cmp(valueA[key], valueB[key]) != true) {
                         return false;
                     }
                 }

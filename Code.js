@@ -473,7 +473,7 @@ function LOOKUPFORKEY(search_key, keys_config, data, concatBySide) {
     if (!isSafe2DArray_(keys_config) && keys_config.every(withPropertyBetween_("length", 2, 5))) throw new Error("keysconfig Must be a dataset with one row for each valid key and for each row must have columns by key name, index or offset_row, offset column [optional], height [optional], width [optional]");
     concatBySide = default_(false).for_(concatBySide).ifIsEmptyOr_(not_(typeOf_("boolean")));
 
-    keys_config.sort(function (a, b){ return a[0].length - b[0].length });
+    keys_config.sort(function (a, b) { return a[0].length - b[0].length });
     var keys = keys_config.map(function (keyCondig) { return keyCondig[0]; });
 
 
@@ -646,14 +646,14 @@ function rangeLookup_(range, search_key, offset_rows, offset_columns, height, wi
 
 /**
 *Looks through a range for a key and returns a range reference shifted a specified number of rows and columns from the starting position of the referenced key.
-*@result Can be a single value if width and height be one or a two dimensional array otherwise. If the position method be ALL, even if the width and height be 1, the result will be an array.
-*@param {string} search_key Must be text to search inside the range. This key will match the entire value in cell of range, so, it's can be a regex pattern, but be aware that will always start with ^ and end with $.
+*@returns Can be a single value if width and height be one or a two dimensional array otherwise. If the position method be ALL, even if the width and height be 1, the result will be an array.
+*@param {string=""} search_key Must be text to search inside the range. This key will match the entire value in cell of range, so, it's can be a regex pattern, but be aware that will always start with ^ and end with $.
 *@param {Array<Array<object>>|string} range Can que be a two dimensional arrays of values, a A1Notation string, In Google Script can be also a Range or NamedRange object
-*@param {number=0} offset_rows The number of rows to offset by.
-*@param {number=0} offset_columns The number of columns to offset by
-*@param {number=1} height The height of the range to return starting at the offset target. If it's be 0 os less will bring all values below the starting position minus this height.
-*@param {number=1} width The width of the range to return starting at the offset target. If it's be 0 os less will bring all values to right the starting position minus this width.
-*@param {string=FIRST} match The method used to bring the first position, can be FIRST, LAST or ALL
+*@param {number=0} offset_rows [optional] The number of rows to offset by.
+*@param {number=0} offset_columns [optional] The number of columns to offset by
+*@param {number=1} height [optional] The height of the range to return starting at the offset target. If it's be 0 os less will bring all values below the starting position minus this height.
+*@param {number=1} width [optional] The width of the range to return starting at the offset target. If it's be 0 os less will bring all values to right the starting position minus this width.
+*@param {string=FIRST} match [optional] The method used to bring the first position, can be FIRST, LAST or ALL
 *@customfunction
 */
 function OFFSETLOOKUP(search_key, range, offset_rows, offset_columns, height, width, match) {
@@ -662,91 +662,118 @@ function OFFSETLOOKUP(search_key, range, offset_rows, offset_columns, height, wi
     else if (typeof range == "string") range = SpreadsheetApp.getActiveSpreadsheet().getRange(range).getValues();
     if (!isSafe2DArray_(range)) return undefined;
 
-    offset_rows = default_(0).for_(offset_rows, parseInt).ifIsEmptyOr_(not_(isInt_));
-    offset_columns = default_(0).for_(offset_columns, parseInt).ifIsEmptyOr_(not_(isInt_));
-    height = default_(1).for_(height, parseInt).ifIsEmptyOr_(not_(isInt_));
-    width = default_(1).for_(width, parseInt).ifIsEmptyOr_(not_(isInt_));
+    var position = matchPosition_(search_key, range, match);
+    var firstPosition = Array.isArray(position) ? position[0] : position;
 
+    var value = offiset_(range,
+        firstPosition.row, firstPosition.column,
+        offset_rows, offset_columns, height, width);
+
+    if (Array.isArray(position)) {
+        value = to2DArray_(value);
+
+        for (var i = 1; i < position.length; i++) {
+            var nextValue = to2DArray_(offiset_(range,
+                position[i].row, position[i].column,
+                offset_rows, offset_columns, height, width));
+            value = safeAppend_(value, nextValue);
+        }
+    }
+
+    return value;
+}
+
+/**
+ * Search a key inside a range qnd returns and object with row_key and column_key
+ *@returns {number, number} a tuple with te row_key and column_key for the searched key, if the match be All and finde more than one will 
+ *@param {string=""} search_key Must be text to search inside the range. This key will match the entire value in cell of range, so, it's can be a regex pattern, but be aware that will always start with ^ and end with $.
+ *@param {Array<Array<object>>} range Must to be a two dimentional array
+ *@param {string=FIRST} match [optional] The method used to bring the first position, can be FIRST, LAST or ALL
+ *@throws Error("Not find key " + search_key + " in range") when did not find the searched key
+ */
+function matchPosition_(search_key, range, match) {
     match = default_("FIRST").for_(match).ifIsEmptyOr_(not_(in_("FIRST", "LAST", "ALL")));
-    search_key = default_("").for_(search_key, toString_).ifIsEmpty();
 
+    search_key = default_("").for_(search_key, toString_).ifIsEmpty();
     var regex = new RegExp("^" + search_key + "$");
 
-    var position_row = match === "ALL" ? [] : undefined;
-    var position_column = match === "ALL" ? [] : undefined;
-    var findAll = false;
+    var position = match === "ALL" ? [] : undefined;
+
     var starting_row = match === "LAST" ? range.length - 1 : 0;
     var end_row = match === "LAST" ? 0 : range.length;
-    var conditional = match === "LAST" ?
-        function (findAll, current, last) { return findAll === false && current >= last; }
-        : function (findAll, current, last) { return findAll === false && current < last; };
+
     var starting_column = match === "LAST" ? range[0].length - 1 : 0;
     var end_column = match === "LAST" ? 0 : range[0].length;
+
     var step = match === "LAST" ? -1 : 1;
 
-    for (var row = starting_row; conditional(findAll, row, end_row); row += step) {
-        for (var column = starting_column; conditional(findAll, column, end_column); column += step) {
-            var value = range[row][column];
-            value = default_("").for_(value, toString_).ifIsEmpty();
+    var conditional = match === "LAST" ?
+        function (position, current, last) {
+            return (position === undefined || Array.isArray(position))
+                && current >= last;
+        }
+        : function (position, current, last) {
+            return (position === undefined || Array.isArray(position))
+                && current < last;
+        };
+
+    for (var row = starting_row; conditional(position, row, end_row); row += step) {
+        for (var column = starting_column; conditional(position, column, end_column); column += step) {
+            var value = default_("").for_(range[row][column], toString_).ifIsEmpty();
             if (value.match(regex)) {
                 if (match === "ALL") {
-                    position_row.push(row);
-                    position_column.push(row);
+                    position.push({ row, column });
                 } else {
-                    position_row = row;
-                    position_column = column;
+                    position = { row, column };
                     findAll = true;
+                    break;
                 }
             }
         }
     }
 
-    if ((match === "ALL" && position_row.length === 0) || findAll === false || position_row === undefined) {
+    if ((match === "ALL" && position.length === 0)
+        || findAll === false
+        || position === undefined) {
         throw new Error("Not find key " + search_key + " in range");
     }
-
-    var first_row = match === "ALL" ? position_row[0] : position_row;
-    var first_column = match === "ALL" ? position_column[0] : position_column;
-
-    var finded = getPositionOfficet_(first_row, first_column, range, offset_rows, offset_columns, height, width);
-
-    if (match === "ALL") {
-        for (var index = 1; index < position_row.length; index++) {
-            var nextRow = position_row(index);
-            var nextColumn = position_column(index);
-            if (!is2DArray_(finded)) { finded = [[finded]]; }
-            var next = getPositionOfficet_(nextRow, nextColumn, range, offset_rows, offset_columns, height, width);
-            if (!is2DArray(next)) { next = [[next]]; }
-            finded.concat(next);
-        }
-    }
-    if ((Array.isArray(finded) && isSafe2DArray_(finded)) || not_(isEmpty_(finded))) {
-        return finded;
-    }
-    return undefined;
-
+    return position;
 }
 
-function getPositionOfficet_(row, column, range, offset_rows, offset_columns, offsetHeight, offsetWidth) {
+/**
+ * Get a value in specific row and column in range
+ * @returns The value in row and column search in range in the specified offset
+ * @param {Array<Array<Object>>} range must to be an two dimentional array
+ * @param {number} row the index of row in range 
+ * @param {number} column the index of column in range
+*@param {number=0} offset_rows [optional] The number of rows to offset by.
+*@param {number=0} offset_columns [optional] The number of columns to offset by
+*@param {number=1} height [optional] The height of the range to return starting at the offset target. If it's be 0 os less will bring all values below the starting position minus this height.
+*@param {number=1} width [optional] The width of the range to return starting at the offset target. If it's be 0 os less will bring all values to right the starting position minus this width.
+ */
+function offiset_(range, row, column, offset_rows, offset_columns, height, width) {
+    offset_rows = default_(0).for_(offset_rows, parseInt).ifIsEmptyOr_(not_(isInt_));
+    offset_columns = default_(0).for_(offset_columns, parseInt).ifIsEmptyOr_(not_(isInt_));
+    height = default_(1).for_(height, parseInt).ifIsEmptyOr_(not_(isInt_));
+    width = default_(1).for_(width, parseInt).ifIsEmptyOr_(not_(isInt_));
+
     row += offset_rows;
     column += offset_columns;
 
     var rangeHeight = range.length;
     var rangeWidth = range[0].length;
 
-    if (offsetHeight <= 0) offsetHeight = rangeHeight + offsetHeight - row;
-    if (offsetWidth <= 0) offsetWidth = rangeWidth + offsetWidth - column;
+    if (height <= 0) height = rangeHeight + height - row;
+    if (width <= 0) width = rangeWidth + width - column;
 
-
-
-    var offsetRange;
-    if (offsetHeight == 1 && offsetWidth == 1) {
-        offsetRange = range[row][column];
+    var value;
+    if (height == 1 && width == 1) {
+        value = range[row][column];
     } else {
-        offsetRange = [];
-        for (var nextRow = row; nextRow < row + offsetHeight && nextRow < rangeHeight; nextRow++) {
+        value = [];
+        for (var nextRow = row; nextRow < row + height && nextRow < rangeHeight; nextRow++) {
             var offsetRow = [];
-            for (var nextColumn = column; nextColumn < column + offsetWidth && nextColumn < rangeWidth; nextColumn++) {
+            for (var nextColumn = column; nextColumn < column + width && nextColumn < rangeWidth; nextColumn++) {
                 if (not_(isEmpty_(range[nextRow][nextColumn]))) {
                     offsetRow.push(range[nextRow][nextColumn]);
                 } else {
@@ -754,12 +781,12 @@ function getPositionOfficet_(row, column, range, offset_rows, offset_columns, of
                 }
             }
             if (not_(isEmpty_(offsetRow))) {
-                offsetRange.push(offsetRow)
+                value.push(offsetRow)
             }
         }
     }
 
-    return offsetRange;
+    return value;
 }
 
 
@@ -1299,7 +1326,8 @@ module.exports = {
     pushRow: pushRow_,
     equalizeNumberOfColumns: equalizeNumberOfColumns_,
     equalizeNumberOfRows: equalizeNumberOfRows_,
-    getPositionOfficet:getPositionOfficet_,
+    matchPosition: matchPosition_,
+    offiset: offiset_,
     OFFSETLOOKUP: OFFSETLOOKUP,
     LOOKUPFORKEY: LOOKUPFORKEY,
     LOOKUPFORKEYSANDREPLACETHEYINTEXT: LOOKUPFORKEYSANDREPLACETHEYINTEXT,
@@ -1324,11 +1352,11 @@ module.exports = {
     SWITCHBETWEEN: SWITCHBETWEEN,
     ISBETWEEN: ISBETWEEN,
     ISONEOF: ISONEOF,
-    
+
     FORMAT: FORMAT,
-    
+
     DICEROLL: DICEROLL,
-    
+
     RESOLVE_CRITERIO: RESOLVE_CRITERIO,
 
     EVALMATHINBRACKETS: EVALMATHINBRACKETS,

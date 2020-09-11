@@ -5,6 +5,8 @@ const equalizeNumberOfRows = require('./Code.js').equalizeNumberOfRows;
 const pushColumn = require('./Code.js').pushColumn;
 const pushRow = require('./Code.js').pushRow;
 const safeAppend = require('./Code.js').safeAppend;
+const matchPosition = require('./Code.js').matchPosition;
+const offiset = require('./Code.js').offiset;
 
 const OFFSETLOOKUP = require('./Code.js').OFFSETLOOKUP;
 const LOOKUPFORKEY = require('./Code.js').LOOKUPFORKEY;
@@ -256,26 +258,60 @@ test("Testing safe Append", expect.group(
 ));
 
 var range1 = [
-    ["Header1", "", "Header2", "Header3", ""],
-    ["Value1", "", "Value2", "Value3", ""],
-    ["A", 10, 0, 0, "Lista B"],
-    ["B", 11, 55, 1, "Item B.A"],
-    ["C", 12, 2, 99, "Item B.B"],
-    ["D", 13, 3, 3, "Item B.C"],
-    ["E", 14, 4, 4, "Item B.D"],
-    ["F", 15, 5, 5, "Item B.E"],
-    ["Lista A", "pts", "", "", "Item B.F"],
-    ["Item A.A", 0, "", "", "Item B.G"],
-    ["Item A.B", 1, "", "", "Item B.H"],
-    ["Item A.C", 2, "", "", "Item B.I"],
-    ["Item A.D", 3, "", "", "Lista A"],
-    ["Item A.E", 4, "", "", "Item Z.1"],
-    ["A", 66, 33, 22, "Item Z.2"],
+    /*0*/["Header1", "", "Header2", "Header3", ""],
+    /*1*/["Value1", "", "Value2", "Value3", ""],
+    /*2*/["A", 10, 0, 0, "Lista B"],
+    /*3*/["B", 11, 55, 1, "Item B.A"],
+    /*4*/["C", 12, 2, 99, "Item B.B"],
+    /*5*/["D", 13, 3, 3, "Item B.C"],
+    /*6*/["E", 14, 4, 4, "Item B.D"],
+    /*7*/["F", 15, 5, 5, "Item B.E"],
+    /*8*/["Lista A", "pts", "", "", "Item B.F"],
+    /*9*/["Item A.A", 0, "", "", "Item B.G"],
+    /*10*/["Item A.B", 1, "", "", "Item B.H"],
+    /*11*/["Item A.C", 2, "", "", "Item B.I"],
+    /*12*/["Item A.D", 3, "", "", "Lista A"],
+    /*13*/["Item A.E", 4, "", "", "Item Z.1"],
+    /*14*/["A", 66, 33, 22, "Item Z.2"],
 ];
 
 var range2 = [["Value1", "Value2", "Value3", 0, 1, 2, 3, 4, 5, "Item A.A,Item A.B,Item A.C,Item A.D,Item A.E", "0,1,2,3,4"]]
 
-test("Testing OFFSETLOOKUP", expect.group(
+var testMatchPosition = test("Testing matchPosition", expect.group(
+    expect
+        .resultOf(() => matchPosition("Lista A", range1))
+        .toBeEqual({ row: 8, column: 0 }),
+    expect
+        .resultOf(() => matchPosition("A", range1, "LAST"))
+        .toBeEqual({ row: 14, column: 0 }),
+    expect
+        .resultOf(() => matchPosition("A", range1, "ALL"))
+        .toBeEqual([{ row: 2, column: 0 }, { row: 14, column: 0 }]),
+
+    expect
+        .resultOf(() => matchPosition("Lista A", range1, "LAST"))
+        .toBeEqual({ row: 12, column: 4 }),
+    expect
+        .resultOf(() => matchPosition("Lista A", range1, "ALL"))
+        .toBeEqual([{ row: 8, column: 0 }, { row: 12, column: 4 }])
+));
+
+var testOffiset = test("Testing offiset", expect.group(
+    expect
+        .resultOf(() => offiset(range1, 14, 0, 0, 1, 1, 1))
+        .toBeEqual(66),
+    expect
+        .resultOf(() => offiset(range1, 14, 0, 0, 2, 1, 1))
+        .toBeEqual(33),
+    expect
+        .resultOf(() => offiset(range1, 14, 0, 0, 3, 1, 1))
+        .toBeEqual(22),
+    expect
+        .resultOf(() => offiset(range1, 12, 4, 1, 0, 0, 1))
+        .toBeEqual([["Item Z.1"], ["Item Z.2"]]),
+));
+
+var testOFFSETLOOKUP = test("Testing OFFSETLOOKUP", expect.group(
     expect
         .resultOf(() => OFFSETLOOKUP("A", range1, 0, 1))
         .toBeEqual(10),
@@ -305,18 +341,18 @@ test("Testing OFFSETLOOKUP", expect.group(
         .toBeEqual(66),
     expect
         .resultOf(() => OFFSETLOOKUP("A", range1, 0, 1, 1, 1, "ALL"))
-        .toBeEqual([10], [66]),
+        .toBeEqual([[10], [66]]),
     expect
         .resultOf(() => OFFSETLOOKUP("A", range1, 0, 1, 1, 3, "ALL"))
-        .toBeEqual([10, 0, 0], [66, 33, 22]),
+        .toBeEqual([[10, 0, 0], [66, 33, 22]]),
     expect
-        .resultOf(() => OFFSETLOOKUP("Lista A", range1, 1, 0, 0), "LAST")
+        .resultOf(() => OFFSETLOOKUP("Lista A", range1, 1, 0, 0, "LAST"))
         .toBeEqual([["Item Z.1"], ["Item Z.2"]]),
     expect
-        .resultOf(() => OFFSETLOOKUP("Lista A", range1, 1, 0, 0, 1), "ALL")
-        .toBeEqual([["Item A.A"], ["Item A.B"], ["Item A.C"], ["Item A.D"], ["Item A.E"],["A"], ["Item Z.1"], ["Item Z.2"]]),
+        .resultOf(() => OFFSETLOOKUP("Lista A", range1, 1, 0, 0, 1, "ALL"))
+        .toBeEqual([["Item A.A"], ["Item A.B"], ["Item A.C"], ["Item A.D"], ["Item A.E"], ["A"], ["Item Z.1"], ["Item Z.2"]]),
 
-));
+), testMatchPosition, testOffiset);
 
 displayResults();
 saveLog("Code.tests");
