@@ -463,14 +463,14 @@ function APPLYMODIFIERS(val, range, key) {
 *Looks through a range for a key and returns a range reference shifted a specified number of rows and columns from the starting position of the referenced key.
 *Its use the keys_config to know wich keys must to 
 *@param {Array<string>|string} search_key Must be text to search inside the range. This key will match the entire value in cell of range, so, it's can be a regex pattern, but be aware that will always start with ^ and end with $. Can be also a list of string.
-*@param {Array<Array<object>>|string} keys_config Must be a dataset with one row for each valid key and for each row must have columns by key name and the other rows must be index or offset_row,  offset column [optional], height [optional] and width [optional].
+*@param {Array<Array<object>>|string} keys_config Must be a dataset with one row for each valid key and for each row must have the columns:[key_alias, index, key_name[optional], key_match[optional]{FIRST, LAST or ALL}]; Or [key_alias, offset_row, offset column, height, width, key_alias, key_name[optional], key_match[optional]].
 *@param {Array<Array<object>>|string} data Can que be a two dimensional arrays of values, a A1Notation string, In Google Script can be also a Range or NamedRange object
 *@param {boolean=false} concatBySide [optional] if true and search_key be an list will bring values side by side
 *@customfunction
 */
 function LOOKUPFORKEY(search_key, keys_config, data, concatBySide) {
     if (typeof search_key != "string" && !Array.isArray(search_key)) throw new Error("search_key Must be a plain text or a list of plain texts");
-    if (!isSafe2DArray_(keys_config) && keys_config.every(withPropertyBetween_("length", 2, 5))) throw new Error("keysconfig Must be a dataset with one row for each valid key and for each row must have columns by key name, index or offset_row, offset column [optional], height [optional], width [optional]");
+    if (!isSafe2DArray_(keys_config) && keys_config.every(withPropertyBetween_("length", 2, 8))) throw new Error("keysconfig Must be a dataset with one row for each valid key and for each row must have the columns: [key_alias, index, key_name[optional], key_match[optional]{FIRST, LAST or ALL}]; Or [key_alias, offset_row, offset column, height, width, key_alias, key_name[optional], key_match[optional]].");
     concatBySide = default_(false).for_(concatBySide).ifIsEmptyOr_(not_(typeOf_("boolean")));
 
     keys_config.sort(function (a, b) { return a[0].length - b[0].length });
@@ -746,10 +746,10 @@ function matchPosition_(search_key, range, match) {
  * @param {Array<Array<Object>>} range must to be an two dimentional array
  * @param {number} row the index of row in range 
  * @param {number} column the index of column in range
-*@param {number=0} offset_rows [optional] The number of rows to offset by.
-*@param {number=0} offset_columns [optional] The number of columns to offset by
-*@param {number=1} height [optional] The height of the range to return starting at the offset target. If it's be 0 os less will bring all values below the starting position minus this height.
-*@param {number=1} width [optional] The width of the range to return starting at the offset target. If it's be 0 os less will bring all values to right the starting position minus this width.
+ * @param {number=0} offset_rows [optional] The number of rows to offset by.
+ * @param {number=0} offset_columns [optional] The number of columns to offset by
+ * @param {number=1} height [optional] The height of the range to return starting at the offset target. If it's be 0 os less will bring all values below the starting position minus this height.
+ * @param {number=1} width [optional] The width of the range to return starting at the offset target. If it's be 0 os less will bring all values to right the starting position minus this width.
  */
 function offiset_(range, row, column, offset_rows, offset_columns, height, width) {
     offset_rows = default_(0).for_(offset_rows, parseInt).ifIsEmptyOr_(not_(isInt_));
@@ -1320,15 +1320,16 @@ function commit() {
 
 
 module.exports = {
-    to2DArray: to2DArray_,
-    safeAppend: safeAppend_,
-    pushColumn: pushColumn_,
-    pushRow: pushRow_,
-    equalizeNumberOfColumns: equalizeNumberOfColumns_,
-    equalizeNumberOfRows: equalizeNumberOfRows_,
     matchPosition: matchPosition_,
     offiset: offiset_,
     OFFSETLOOKUP: OFFSETLOOKUP,
+    FLATARRAY: FLATARRAY,
+    to2DArray: to2DArray_,
+    equalizeNumberOfColumns: equalizeNumberOfColumns_,
+    equalizeNumberOfRows: equalizeNumberOfRows_,
+    pushColumn: pushColumn_,
+    pushRow: pushRow_,
+    safeAppend: safeAppend_,
     LOOKUPFORKEY: LOOKUPFORKEY,
     LOOKUPFORKEYSANDREPLACETHEYINTEXT: LOOKUPFORKEYSANDREPLACETHEYINTEXT,
     REPLACEKEYSFORVALUESSINLOOKUPRANGE: REPLACEKEYSFORVALUESSINLOOKUPRANGE,
@@ -1342,7 +1343,7 @@ module.exports = {
     REMOVE_EMPTYROWS: REMOVE_EMPTYROWS,
     REMOVE_EMPTYCOLUMNS: REMOVE_EMPTYCOLUMNS,
     REMOVEROWS_WITH_EMPTYCOLUMN: REMOVEROWS_WITH_EMPTYCOLUMN,
-    FLATARRAY: FLATARRAY,
+    
     FLIP_TABLE: FLIP_TABLE,
     SPLIT2D: SPLIT2D,
     REGEXEXTRACTALL: REGEXEXTRACTALL,
