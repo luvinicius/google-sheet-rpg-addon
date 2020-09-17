@@ -439,38 +439,73 @@ function ISONEOF(value, ...validValues) {
 }
 
 /**
- * @returns
- * @param {*} text 
- * @param {*} keys_config 
- * @param {*} range 
- * @param {*} applyModifiers 
+ * 
+ * @param {string} text 
+ * @param {string|Array<string>|Array<Array<string>>} modifiers
+ * @param {Array<Array<string>>} keys_list
+ * @param {string=","} split
  */
-function LOOKUPFORKEYSANDREPLACETHEYINTEXT(text, keys_config, range, applyModifiers) {
-    if (isSafe2DArray_(keys_config)) {
-        var pattern = keys_config.reduce(function (total, currentValue, index, arr) { return total + (index > 0 ? '|' : '') + currentValue[0] }, '(') + ')';
-        var regex = new RegExp(pattern, "g");
+function APPENDMODIFIERS(text, modifiers, keys_list, split) {
+    if (typeof text !== "string") throw new Error("Text must be a string!");
+    if (Array.isArray(modifiers)) {
+        for (i in modifiers) text = APPENDMODIFIERS(text, modifiers[i], split);
+    } else if (typeof modifiers == "string") {
+        split = default_(",").for_(split).ifIsEmpty();
+        if (modifiers.match(split)) {
+            text = APPENDMODIFIERS(text, modifiers.split(split), keys_list, split);
+        } else if (typeof modifiers === "string") {
+            if (Array.isArray(keys_list)) {
+                if (is2DArray_(keys_list)) {
+                    keys_list = keys_list.map(function (value) { return value[0]; });
+                }
+                keys_list = keys_list.sort(function (a, b) { return a.length < b.length; })
+                var keys_regex = new RegExp(`(${keys_list.join("|")})`);
+                var modifier_regex = new RegExp(`\\<((${keys_list.join("|")})[\\+\\-\\*\\/][0-9]+)[^\>]+\\>`);
+                if (text.match(keys_regex) && modifiers.match(modifier_regex)) {
+                    for (i in keys_list) text = APPENDMODIFIERS(text, modifiers.split(split), keys_list[i], split);
+                }
+            } else if (typeof keys_list === "string") {
+                var modifier_regex = new RegExp(`\\<((${keys_list})[\\+\\-\\*\\/][0-9]+)[^\>]+\\>`, "g");
+                if (text.match(keys_list) && modifiers.match(modifier_regex)) {
+                    var matchs = modifiers.match(modifier_regex);
+                    for (i in matchs) {
+                        text = text.replace(new RegExp(keys_list, "g"), `(${matchs[i]})`);
+                    }
+                }
+            }
+
+        }
     }
-
     return text;
-
 }
 
-function APPLYMODIFIERS(val, range, key) {
 
+/**
+ * @returns
+ * @param {*} text 
+ *@param {Array<Array<string>>} keys_config Must be a dataset with one row for each valid key and for each row must have the columns:[key_alias, index]; Or [key_alias, offset_row, offset column, height, width, key_name[optional], key_match[optional]{FIRST, LAST or ALL}].
+ * @param {*} range 
+ */
+function LOOKUPFORKEYSANDREPLACETHEYINTEXT(text, keys_config, range) {
+    validateKeysConfig_(keys_config);
+
+
+    var pattern = keys_config.reduce(function (total, currentValue, index, arr) { return total + (index > 0 ? '|' : '') + currentValue[0] }, '(') + ')';
+    var regex = new RegExp(pattern, "g");
 }
 
 /**
 *Looks through a range for a key and returns a range reference shifted a specified number of rows and columns from the starting position of the referenced key.
 *Its use the keys_config to know wich keys must to 
 *@param {Array<string>|string} search_key Must be text to search inside the range. This key will match the entire value in cell of range, so, it's can be a regex pattern, but be aware that will always start with ^ and end with $. Can be also a list of string.
-*@param {Array<Array<object>>|string} keys_config Must be a dataset with one row for each valid key and for each row must have the columns:[key_alias, index, key_name[optional], key_match[optional]{FIRST, LAST or ALL}]; Or [key_alias, offset_row, offset column, height, width, key_alias, key_name[optional], key_match[optional]].
-*@param {Array<Array<object>>|string} data Can que be a two dimensional arrays of values, a A1Notation string, In Google Script can be also a Range or NamedRange object
+*@param {Array<Array<string>>} keys_config Must be a dataset with one row for each valid key and for each row must have the columns:[key_alias, index]; Or [key_alias, offset_row, offset column, height, width, key_name[optional], key_match[optional]{FIRST, LAST or ALL}].
+*@param {Array<Array<object>>|string} range Can que be a two dimensional arrays of values, a A1Notation string, In Google Script can be also a Range or NamedRange object
 *@param {boolean=false} concatBySide [optional] if true and search_key be an list will bring values side by side
 *@customfunction
 */
-function LOOKUPFORKEY(search_key, keys_config, data, concatBySide) {
+function LOOKUPFORKEY(search_key, keys_config, range, concatBySide) {
     if (typeof search_key != "string" && !Array.isArray(search_key)) throw new Error("search_key Must be a plain text or a list of plain texts");
-    if (!isSafe2DArray_(keys_config) && keys_config.every(withPropertyBetween_("length", 2, 8))) throw new Error("keysconfig Must be a dataset with one row for each valid key and for each row must have the columns: [key_alias, index, key_name[optional], key_match[optional]{FIRST, LAST or ALL}]; Or [key_alias, offset_row, offset column, height, width, key_alias, key_name[optional], key_match[optional]].");
+    validateKeysConfig_(keys_config);
     concatBySide = default_(false).for_(concatBySide).ifIsEmptyOr_(not_(typeOf_("boolean")));
 
     keys_config.sort(function (a, b) { return a[0].length - b[0].length });
@@ -479,28 +514,40 @@ function LOOKUPFORKEY(search_key, keys_config, data, concatBySide) {
 
     if (Array.isArray(search_key) && keys_config) {
         search_key = FLATARRAY(search_key);
-        search_key.sort(function (a, b) { return a.length - b.length });
         var dataToReturn = [];
         for (i in search_key) {
-            var row = LOOKUPFORKEY(search_key[i], keys_config, data);
-            if (row) {
+            var row = LOOKUPFORKEY(search_key[i], keys_config, range);
+            if (not_(isEmpty_(row))) {
                 dataToReturn = safeAppend_(dataToReturn, row, concatBySide);
             }
         }
         if (not_(isEmpty_(dataToReturn))) return dataToReturn;
     } else if (keys.includes(search_key)) {
-        var keyConfig = keys_config.find(function (currentValue, index, arr) { return this == currentValue[0] }, search_key);
+        var keyConfig = keys_config.find(function (currentValue) { return this == currentValue[0] }, search_key);
         if (keyConfig.length == 2) {
-            if (is2DArray_(data)) {
-                return data[0][keyConfig[1]];
-            } else if (Array.isArray(data)) {
-                return data[keyConfig[1]];
+            // By index
+            if (is2DArray_(range)) {
+                return range[0][keyConfig[1]];
+            } else if (Array.isArray(range)) {
+                return range[keyConfig[1]];
             }
         } else {
-            return rangeLookup_(data, ...keyConfig);
+            // By range
+            var [offset_rows, offset_columns, height, width, key_name, match] = keyConfig.slice(1);
+            if (not_(isEmpty_(key_name))) { search_key = key_name; }
+
+            return OFFSETLOOKUP(search_key, range, offset_rows, offset_columns, height, width, match);
         }
     }
     return undefined;
+}
+
+function validateKeysConfig_(keys_config) {
+    if (!is2DArray_(keys_config) ||
+        !(keys_config.every(withLength_(2)) ||
+            keys_config.every(withPropertyBetween_("length", 5, 7)))) {
+        throw new Error("keysconfig Must be a dataset with one row for each valid key and for each row must have the columns:[key_alias, index]; Or [key_alias, offset_row, offset column, height, width, key_name[optional], key_match[optional]{FIRST, LAST or ALL}].");
+    }
 }
 
 /**
@@ -637,12 +684,6 @@ function pushRow_(arrayA, arrayB) {
     return [].concat(arrayA).concat(arrayB);
 }
 
-
-
-
-function rangeLookup_(range, search_key, offset_rows, offset_columns, height, width) {
-    return OFFSETLOOKUP(search_key, range, offset_rows, offset_columns, height, width);
-}
 
 /**
 *Looks through a range for a key and returns a range reference shifted a specified number of rows and columns from the starting position of the referenced key.
@@ -1334,7 +1375,7 @@ module.exports = {
     LOOKUPFORKEYSANDREPLACETHEYINTEXT: LOOKUPFORKEYSANDREPLACETHEYINTEXT,
     REPLACEKEYSFORVALUESSINLOOKUPRANGE: REPLACEKEYSFORVALUESSINLOOKUPRANGE,
 
-    APPLYMODIFIERS: APPLYMODIFIERS,
+    APPENDMODIFIERS: APPENDMODIFIERS,
 
     EXTRACTDICES: EXTRACTDICES,
     REPLACEDICECOMMANDFORKEYS: REPLACEDICECOMMANDFORKEYS,
@@ -1343,7 +1384,7 @@ module.exports = {
     REMOVE_EMPTYROWS: REMOVE_EMPTYROWS,
     REMOVE_EMPTYCOLUMNS: REMOVE_EMPTYCOLUMNS,
     REMOVEROWS_WITH_EMPTYCOLUMN: REMOVEROWS_WITH_EMPTYCOLUMN,
-    
+
     FLIP_TABLE: FLIP_TABLE,
     SPLIT2D: SPLIT2D,
     REGEXEXTRACTALL: REGEXEXTRACTALL,

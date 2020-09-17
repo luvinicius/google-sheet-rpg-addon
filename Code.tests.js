@@ -11,9 +11,11 @@ const offiset = require('./Code.js').offiset;
 const OFFSETLOOKUP = require('./Code.js').OFFSETLOOKUP;
 const FLATARRAY = require('./Code.js').FLATARRAY;
 const LOOKUPFORKEY = require('./Code.js').LOOKUPFORKEY;
+const APPENDMODIFIERS = require('./Code.js').APPENDMODIFIERS;
+
 const LOOKUPFORKEYSANDREPLACETHEYINTEXT = require('./Code.js').LOOKUPFORKEYSANDREPLACETHEYINTEXT;
 const REPLACEKEYSFORVALUESSINLOOKUPRANGE = require('./Code.js').REPLACEKEYSFORVALUESSINLOOKUPRANGE;
-const APPLYMODIFIERS = require('./Code.js').APPLYMODIFIERS;
+
 
 const SPLIT2D = require('./Code.js').SPLIT2D;
 
@@ -41,22 +43,35 @@ var range1 = [
 ];
 
 var range1Config = [
-["Header1"],
-["Header2"],
-["Header3"],
-["A"],
-["B"],
-["C"],
-["D"],
-["E"],
-["F"],
-["Lista A"],
-["Lista B"],
-["A2"],
-["Lista A2"],
+    ["Header1", 1, 0, 1, 1],
+    ["Header2", 1, 0, 1, 1],
+    ["Header3", 1, 0, 1, 1],
+    ["A", 0, 3, 1, 1],
+    ["B", 0, 3, 1, 1],
+    ["C", 0, 3, 1, 1],
+    ["D", 0, 3, 1, 1],
+    ["E", 0, 3, 1, 1],
+    ["F", 0, 3, 1, 1],
+    ["Lista A", 1, 0, -1, 2],
+    ["Lista B", 1, 0, 9, 1],
+    ["A2", 0, 3, 1, 1, "A", "LAST"],
+    ["Lista A2", 1, 0, 0, 1, "Lista A", "LAST"],
+    ["A3", 0, 3, 1, 1, "A", "ALL"],
 ];
 
-var range2 = [["Value1", "Value2", "Value3", 0, 1, 2, 3, 4, 5, "Item A.A,Item A.B,Item A.C,Item A.D,Item A.E", "0,1,2,3,4"]]
+var range2 = [["Value1", "Value2", "Value3", 0, 1, 2, 3, 4, 5, "Item A.A,Item A.B,Item A.C,Item A.D,Item A.E"]]
+var range2Config = [
+    ["Header1", 0],
+    ["Header2", 1],
+    ["Header3", 2],
+    ["A", 3],
+    ["B", 4],
+    ["C", 5],
+    ["D", 6],
+    ["E", 7],
+    ["F", 8],
+    ["Lista A", 9]
+];
 
 
 var testMatchPosition = test("Testing matchPosition", expect.group(
@@ -405,9 +420,66 @@ var testSafeAppend = test("Testing safe Append", expect.group(
 
 var testLOOKUPFORKEY = test("Testing LOOKUPFORKEY", expect.group(
     expect
-    .resultOf(() => LOOKUPFORKEY("A",[],range1))
-    .toBeEqual([["a", "c"], ["b", "d"], ["", "e"]]),
+        .resultOf(() => LOOKUPFORKEY("A", range1Config, range1))
+        .toBeEqual(0),
+    expect
+        .resultOf(() => LOOKUPFORKEY("C", range1Config, range1))
+        .toBeEqual(99),
+    expect
+        .resultOf(() => LOOKUPFORKEY("F", range1Config, range1))
+        .toBeEqual(5),
+    expect
+        .resultOf(() => LOOKUPFORKEY("Lista A", range1Config, range1))
+        .toBeEqual([["Item A.A", 0], ["Item A.B", 1], ["Item A.C", 2], ["Item A.D", 3], ["Item A.E", 4]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY("Lista B", range1Config, range1))
+        .toBeEqual([["Item B.A"], ["Item B.B"], ["Item B.C"], ["Item B.D"], ["Item B.E"], ["Item B.F"], ["Item B.G"], ["Item B.H"], ["Item B.I"]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY("Lista A2", range1Config, range1))
+        .toBeEqual([["Item Z.1"], ["Item Z.2"]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY("A2", range1Config, range1))
+        .toBeEqual(22),
+    expect
+        .resultOf(() => LOOKUPFORKEY("A3", range1Config, range1))
+        .toBeEqual([[0], [22]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY(["A", "B", "C"], range1Config, range1))
+        .toBeEqual([[0], [1], [99]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY(["A", "B", "C"], range1Config, range1, true))
+        .toBeEqual([[0, 1, 99]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY(["Lista A", "Lista B"], range1Config, range1))
+        .toBeEqual([["Item A.A", 0], ["Item A.B", 1], ["Item A.C", 2], ["Item A.D", 3], ["Item A.E", 4], ["Item B.A", ""], ["Item B.B", ""], ["Item B.C", ""], ["Item B.D", ""], ["Item B.E", ""], ["Item B.F", ""], ["Item B.G", ""], ["Item B.H", ""], ["Item B.I", ""]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY(["Lista A2", "Lista B"], range1Config, range1))
+        .toBeEqual([["Item Z.1"], ["Item Z.2"], ["Item B.A"], ["Item B.B"], ["Item B.C"], ["Item B.D"], ["Item B.E"], ["Item B.F"], ["Item B.G"], ["Item B.H"], ["Item B.I"]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY(["Lista A2", "Lista A"], range1Config, range1, true))
+        .toBeEqual([["Item Z.1", "Item A.A", 0], ["Item Z.2", "Item A.B", 1], ["", "Item A.C", 2], ["", "Item A.D", 3], ["", "Item A.E", 4]]),
+    expect
+        .resultOf(() => LOOKUPFORKEY("Header1", range2Config, range2))
+        .toBeEqual("Value1"),
+    expect
+        .resultOf(() => LOOKUPFORKEY("Lista A", range2Config, range2))
+        .toBeEqual("Item A.A,Item A.B,Item A.C,Item A.D,Item A.E")
+), testOFFSETLOOKUP, testFLATARRAY, testSafeAppend);
+
+test("Testing APPENDMODIFIERS", expect.group(
+    expect.resultOf(() => APPENDMODIFIERS("A+B+C", "<A+2>", range1Config))
+        .toBeEqual("(A+2)+B+C")
 ));
+
+/*test("Testing LOOKUPFORKEYSANDREPLACETHEYINTEXT", expect.group(
+
+), testLOOKUPFORKEY);
+
+test("Testing REPLACEKEYSFORVALUESSINLOOKUPRANGE", expect.group(
+
+), testLOOKUPFORKEY);*/
+
+
 
 displayResults();
 saveLog("Code.tests");
