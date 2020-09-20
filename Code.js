@@ -448,28 +448,30 @@ function ISONEOF(value, ...validValues) {
 function APPENDMODIFIERS(text, modifiers, keys_list, split) {
     if (typeof text !== "string") throw new Error("Text must be a string!");
     if (Array.isArray(modifiers)) {
-        for (i in modifiers) text = APPENDMODIFIERS(text, modifiers[i], split);
-    } else if (typeof modifiers == "string") {
+        for (i in modifiers) text = APPENDMODIFIERS(text, modifiers[i], keys_list, split);
+    } else if (typeof modifiers === "string") {
         split = default_(",").for_(split).ifIsEmpty();
         if (modifiers.match(split)) {
             text = APPENDMODIFIERS(text, modifiers.split(split), keys_list, split);
-        } else if (typeof modifiers === "string") {
+        } else {
             if (Array.isArray(keys_list)) {
                 if (is2DArray_(keys_list)) {
                     keys_list = keys_list.map(function (value) { return value[0]; });
                 }
                 keys_list = keys_list.sort(function (a, b) { return a.length < b.length; })
                 var keys_regex = new RegExp(`(${keys_list.join("|")})`);
-                var modifier_regex = new RegExp(`\\<((${keys_list.join("|")})[\\+\\-\\*\\/][0-9]+)[^\>]+\\>`);
+                var modifier_regex = new RegExp(`\\<((${keys_list.join("|")}) *[\\+\\-\\*\\/] *[0-9]+)[^\>]*\\>`);
                 if (text.match(keys_regex) && modifiers.match(modifier_regex)) {
                     for (i in keys_list) text = APPENDMODIFIERS(text, modifiers.split(split), keys_list[i], split);
                 }
             } else if (typeof keys_list === "string") {
-                var modifier_regex = new RegExp(`\\<((${keys_list})[\\+\\-\\*\\/][0-9]+)[^\>]+\\>`, "g");
+                var modifier_regex_str = `\\<(${keys_list} *[\\+\\-\\*\\/] *[0-9]+)[^\>]*\\>`;
+                var modifier_regex = new RegExp(modifier_regex_str, "g");
                 if (text.match(keys_list) && modifiers.match(modifier_regex)) {
-                    var matchs = modifiers.match(modifier_regex);
-                    for (i in matchs) {
-                        text = text.replace(new RegExp(keys_list, "g"), `(${matchs[i]})`);
+                    var match = modifiers.match(modifier_regex);
+                    for (i in match) {
+                        var replacement = match[i].match(modifier_regex_str)[1];
+                        text = text.replace(new RegExp(keys_list, "g"), `(${replacement})`);
                     }
                 }
             }
